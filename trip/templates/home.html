@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+
+{% block body %}
+    <div class="container" style="text-align: center">
+            <h1>My Trip</h1>
+            <br>
+            <h2>Controle de Orçamento</h2>
+            <br>
+        <h2>Registrar Orçamento</h2>
+        <form method="POST">
+            <input type="hidden" name="tipo_form" value="orcamento">
+            <label>Valor do Orçamento:</label>
+            <input type="number" name="valor_orcamento" step="0.01" required>
+            <button type="submit">Registrar</button>
+        </form>
+        <br>
+        <h2>Registrar Atividade</h2>
+        <form method="POST">
+            <input type="hidden" name="tipo_form" value="atividade">
+            <label>Nome da Atividade:</label>
+            <input type="text" name="nome_atividade" required>
+            <label>Custo:</label>
+            <input type="number" name="custo_atividade" step="0.01" required>
+            <button type="submit">Adicionar</button>
+        </form>
+        <br>
+        <h2>Resumo</h2>
+        <p><strong>Orçamento Total:</strong> R$ {{ orcamento_total }}</p>
+        <p><strong>Saldo Restante:</strong> R$ {{ saldo }}</p>
+
+        <h3>Atividades</h3>
+        <ul>
+            {% for atividade in atividades %}
+                <li>{{ atividade.nome }} — R$ {{ atividade.custo }}</li>
+            {% else %}
+                <li>Nenhuma atividade registrada.</li>
+            {% endfor %}
+        </ul>
+
+    </div>
+{% endblock %}

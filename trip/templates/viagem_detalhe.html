@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+
+{% block body %}
+    <div class="container mt-4">
+    <div class="card mx-auto" style="max-width: 700px;">
+        <img src="{{ url_for('static', filename='fotos_viagens/' ~ viagem.foto_viagem) }}"
+             class="card-img-top" alt="Foto da viagem">
+
+        <div class="card-body">
+            <h3 class="card-title text-center">{{ viagem.destino }}</h3>
+            <p class="card-text text-center mt-3">
+                <strong>Valor total:</strong> R$ {{ viagem.valor_total }}
+            </p>
+            <hr>
+
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5>Atividades</h5>
+                <!-- Botão que abre o modal -->
+                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalAtividade">
+                    + Nova Atividade
+                </button>
+            </div>
+
+            {% if viagem.atividades %}
+                <ul class="list-group">
+                    {% for atividade in viagem.atividades %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ atividade.nome_atividade }}
+                            <span>R$ {{ atividade.valor_atividade }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="text-muted text-center mt-3">Nenhuma atividade cadastrada ainda.</p>
+            {% endif %}
+
+            <div class="text-center mt-4">
+                <a href="{{ url_for('viagens') }}" class="btn btn-secondary">Voltar</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para criar atividade -->
+<div class="modal fade" id="modalAtividade" tabindex="-1" aria-labelledby="modalAtividadeLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalAtividadeLabel">Adicionar Atividade</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <form method="POST">
+            {{ form_atividade.hidden_tag() }}
+            <div class="mb-3">
+                {{ form_atividade.nome_atividade.label(class="form-label") }}
+                {{ form_atividade.nome_atividade(class="form-control") }}
+            </div>
+            <div class="mb-3">
+                {{ form_atividade.valor_atividade.label(class="form-label") }}
+                {{ form_atividade.valor_atividade(class="form-control") }}
+            </div>
+            <div class="text-end">
+                {{ form_atividade.submit_atividade(class="btn btn-primary") }}
+            </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

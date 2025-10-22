@@ -1,0 +1,22 @@
+# Ambiente virtual
+venv/
+
+# Arquivo de variáveis de ambiente (senhas, chaves etc.)
+.env
+
+# Arquivos de banco de dados
+instance/mytrip.db
+
+# Caches e temporários
+__pycache__/
+
+# Arquivos de IDE
+.vscode/
+.idea/
+
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
+
+# Uploads locais
+trip/static/fotos_perfil/

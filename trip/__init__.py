@@ -3,12 +3,21 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager
 from flask_migrate import Migrate
+from dotenv import load_dotenv
+import os
+
+# --- Carregar variáveis do .env ---
+# Caminho absoluto para o .env na raiz do projeto
+dotenv_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
+load_dotenv(dotenv_path)
+
 
 app = Flask(__name__)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///mytrip.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = '0d22a0a6a40fae9a00bb16054f87751b'
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+
 
 database = SQLAlchemy(app)
 bcrypt = Bcrypt(app)

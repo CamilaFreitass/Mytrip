@@ -5,11 +5,11 @@ venv/
 .env
 
 # Arquivos de banco de dados
-instance/mytrip.db
+instance/
 
 # Caches e temporários
 __pycache__/
-**/__pycache__/
+trip/__pycache__/
 
 # Arquivos de IDE
 .vscode/

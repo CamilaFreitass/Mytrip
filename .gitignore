@@ -9,6 +9,7 @@ instance/mytrip.db
 
 # Caches e temporários
 __pycache__/
+**/__pycache__/
 
 # Arquivos de IDE
 .vscode/

@@ -1,5 +1,5 @@
 from flask import render_template, redirect, url_for, request, flash, abort
-from trip import app, database,bcrypt
+from trip import app, database, bcrypt
 from trip.forms import FormCriarConta, FormLogin, FormEditarPerfil, FormCriarViagem, FormCriarAtividade
 from trip.models import Viajante, Viagem, Atividade
 from flask_login import login_user, logout_user, current_user, login_required
@@ -40,14 +40,6 @@ def home():
     return render_template("home.html", orcamento_total=orcamento_total, atividades=atividades, saldo=saldo)
 
 
-@app.route('/viagens')
-@login_required
-def viagens():
-    # filtra as viagens do usuário logado
-    viagens_usuario = Viagem.query.filter_by(id_viajante=current_user.id).all()
-    return render_template('viagens.html', viagens=viagens_usuario)
-
-
 @app.route('/viagem/<int:id_viagem>', methods=["GET", "POST"])
 @login_required
 def viagem_detalhe(id_viagem):
@@ -67,6 +59,10 @@ def viagem_detalhe(id_viagem):
             id_viagem=viagem.id
         )
         database.session.add(nova_atividade)
+
+        # atualiza o valor restante da viagem
+        viagem.atualizar_valor_restante()
+
         database.session.commit()
         flash('Atividade adicionada com sucesso!', 'alert-success')
         return redirect(url_for('viagem_detalhe', id_viagem=id_viagem))
@@ -109,6 +105,35 @@ def sair():
     return redirect(url_for('home'))
 
 
+def calcular_percentual_e_cor(viagens):
+    """
+    Recebe uma lista de objetos Viagem e retorna uma lista de dicionários:
+    { "viagem": Viagem, "percentual_gasto": float, "cor": str }
+    """
+    resultado = []
+    for viagem in viagens:
+        # Usa valor_restante se existir, senão assume valor_total
+        valor_restante = viagem.valor_restante if viagem.valor_restante is not None else viagem.valor_total
+
+        if viagem.valor_total and valor_restante is not None:
+            percentual_gasto = ((viagem.valor_total - valor_restante) / viagem.valor_total) * 100
+            percentual_gasto = max(0, min(percentual_gasto, 100)) # garante entre 0 e 100
+        else:
+            percentual_gasto = 0
+
+        # Define a cor da barra com base no percentual
+        if percentual_gasto <= 50:
+            cor = 'bg-success' # verde
+        elif percentual_gasto <= 80:
+            cor = 'bg-warning' # amarelo
+        else:
+            cor = 'bg-danger'  # vermelho
+
+        resultado.append({"viagem": viagem, "percentual_gasto": percentual_gasto, "cor": cor})
+
+    return resultado 
+
+
 @app.route('/perfil')
 @login_required
 def perfil():
@@ -118,8 +143,26 @@ def perfil():
     form.email.data = current_user.email
     form.nome.data = current_user.nome
 
+    # Conta quantas viagens o usuário tem
+    qtd_viagens = Viagem.query.filter_by(id_viajante=current_user.id).count()
+
+    # Mostra todas as viagens do usuário
+    viagens_usuario = Viagem.query.filter_by(id_viajante=current_user.id).all()
+
+    # Calcula o percentual e cor das barras usando a função auxiliar
+    viagens_com_percentual = calcular_percentual_e_cor(viagens_usuario)
+
+    # mostra a foto de perfil
     foto_perfil = url_for('static', filename='fotos_perfil/{}'.format(current_user.foto_perfil))
-    return render_template('perfil.html', foto_perfil=foto_perfil, form=form)
+
+    return render_template(
+        'perfil.html', 
+        foto_perfil=foto_perfil, 
+        form=form, 
+        qtd_viagens=qtd_viagens, 
+        viagens_usuario=viagens_usuario,
+        viagens_com_percentual=viagens_com_percentual
+        )
 
 
 @app.route('/viagem/criar', methods=['GET', 'POST'])

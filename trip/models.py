@@ -22,8 +22,21 @@ class Viagem(database.Model):
     id = database.Column(database.Integer, primary_key=True)
     destino = database.Column(database.String, nullable=False)
     valor_total = database.Column(database.Float, nullable=False)
+    valor_restante = database.Column(database.Float)
     id_viajante = database.Column(database.Integer, database.ForeignKey('viajantes.id', name='fk_viagem_viajante'), nullable=False)
     atividades = database.relationship('Atividade', backref='viagem', lazy=True)
+
+    def __init__(self, destino, valor_total, id_viajante):
+        self.destino = destino
+        self.valor_total = valor_total
+        self.valor_restante = valor_total # inicia igual ao total
+        self.id_viajante = id_viajante
+
+    
+    def atualizar_valor_restante(self):
+        # soma valor de todas as atividades
+        total_atividades = sum([atividade.valor_atividade for atividade in self.atividades])
+        self.valor_restante = self.valor_total - total_atividades
 
     def __repr__(self):
         return f"<Viagem para {self.destino}>"
@@ -35,7 +48,7 @@ class Atividade(database.Model):
     id = database.Column(database.Integer, primary_key=True)
     nome_atividade = database.Column(database.String, nullable=False)
     valor_atividade = database.Column(database.Float, nullable=False)
-    id_viagem = database.Column(database.Integer, database.ForeignKey('viagens.id', name='fk_atividade_viagem'))
+    id_viagem = database.Column(database.Integer, database.ForeignKey('viagens.id', name='fk_atividade_viagem'), nullable=False)
 
     def __repr__(self):
         return f"<Atividade {self.nome_atividade}>"

@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+
+{% block body %}
+        <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header bg-dark text-white text-center">
+                        <h2>{{ atividade.nome_atividade }}</h2>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" action="{{ url_for('atividade_detalhe', id_atividade=atividade.id) }}" enctype="multipart/form-data">
+                            {{ form.hidden_tag() }}
+                        <div class="mb-3">
+                            {{ form.nome_atividade.label(class="form-label") }}
+                            {{ form.nome_atividade(class="form-control") }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.valor_atividade.label(class="form-label") }}
+                            {{ form.valor_atividade(class="form-control") }}
+                        </div>
+                        {{ form.submit_atividade(class="btn btn-primary") }}
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

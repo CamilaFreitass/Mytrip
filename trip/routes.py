@@ -70,6 +70,24 @@ def viagem_detalhe(id_viagem):
     return render_template('viagem_detalhe.html', viagem=viagem, form_atividade=form_atividade)
 
 
+@app.route('/atividade/<int:id_atividade>', methods=["GET", "POST"])
+@login_required
+def atividade_detalhe(id_atividade):
+    atividade = Atividade.query.get_or_404(id_atividade)
+    viagem = Viagem.query.get_or_404(atividade.id_viagem)
+    form = FormCriarAtividade()
+    if request.method == 'GET':
+        form.nome_atividade.data = atividade.nome_atividade
+        form.valor_atividade.data = atividade.valor_atividade
+    elif form.validate_on_submit():
+        atividade.nome_atividade = form.nome_atividade.data
+        atividade.valor_atividade = form.valor_atividade.data
+        viagem.atualizar_valor_restante()
+        database.session.commit()
+        return redirect(url_for('viagem_detalhe', id_viagem=viagem.id))
+    return render_template('atividade_detalhe.html', atividade=atividade, form=form, viagem=viagem)
+
+
 @app.route('/acesso', methods=["GET", "POST"])
 def acesso():
     form_login = FormLogin()

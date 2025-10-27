@@ -1,5 +1,5 @@
-from __init__ import app, database
+# from __init__ import app, database
 
-with app.app_context():
-    database.create_all()
-    print("Banco de dados criado com sucesso")
+# with app.app_context():
+#     database.create_all()
+#     print("Banco de dados criado com sucesso")

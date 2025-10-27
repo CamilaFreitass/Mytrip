@@ -88,20 +88,22 @@
                 </div>
             </div>
             <!--fim do modal-->
-            <div class="px-4 py-3"> <h5 class="mb-0">Objetivo</h5> <div class="p-4 rounded shadow-sm bg-light"> <p class="font-italic mb-0">Web Developer</p> 
-                <p class="font-italic mb-0">Lives in New York</p> <p class="font-italic mb-0">Photographer</p> </div> 
-            </div> 
-            <div class="py-4 px-4"> 
-                <div class="d-flex align-items-center justify-content-between mb-3"> 
-                    <h5 class="mb-0">Viagens</h5>
-                    <a href="#" class="btn btn-link text-muted">Show all</a> 
+            <div class="px-4 py-3"> <h5 class="mb-0">Objetivo</h5> 
+                <div class="p-4 rounded shadow-sm bg-light"> 
+                    <p class="font-italic mb-0">Web Developer</p> 
+                    <p class="font-italic mb-0">Lives in New York</p> 
+                    <p class="font-italic mb-0">Photographer</p> 
                 </div> 
+            </div> 
+            <div class="py-4 px-4">
+                <h4 class="mb-0"><strong>Viagens</strong></h4>
+                <br>
                 {% if viagens_com_percentual %}
                     <div class="row"> 
                         {% for item in viagens_com_percentual %}
                             <div class="col-md-6 mb-4"> <!-- 2 por linha -->
                                 <a href="{{ url_for('viagem_detalhe', id_viagem=item.viagem.id) }}" class="text-decoration-none text-dark">    
-                                    <div class="card">
+                                    <div class="card bg-light">
                                         <div class="card-body">
                                             <h5 class="card-titlek">{{ item.viagem.destino }}</h5>
                                             <h6 class="card-subtitle mb-2 text-muted"> Orçamento R$ {{ item.viagem.valor_total }}</h6>
@@ -130,8 +132,12 @@
                     </div> 
                 {% else %}
                     <p class="text-center">Não há viagens cadastradas.</p>
-                {% endif %} 
-                    
+                {% endif %}      
+            </div>
+            <div class="px-4 py-3">
+                 <form action="{{ url_for('criar_viagem') }}" method="get" class="d-flex justify-content-center">
+                    <button type="submit" class="btn btn-outline-dark w-50">Criar Viagem</button>
+                </form>
             </div> 
         </div>
     </div>

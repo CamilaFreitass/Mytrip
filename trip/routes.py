@@ -84,7 +84,7 @@ def acesso():
             if par_next:
                 return redirect(par_next)
             else:
-                return redirect(url_for('viagens'))
+                return redirect(url_for('perfil'))
         else:
             flash(f'Falha no Login. E-mail ou Senha Incorretos', 'alert-danger')
     if form_criarconta.validate_on_submit() and 'submit_criar_conta' in request.form:
@@ -93,7 +93,7 @@ def acesso():
         database.session.add(viajante)
         database.session.commit()
         flash(f'Conta criada com sucesso para o viajante: {form_criarconta.nome.data}', 'alert-success')
-        return redirect(url_for('viagens'))
+        return redirect(url_for('perfil'))
     return render_template('acesso.html', form_login=form_login, form_criarconta=form_criarconta)
 
 

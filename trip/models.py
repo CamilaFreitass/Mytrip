@@ -10,7 +10,7 @@ class Viajante(database.Model, UserMixin):
     email = database.Column(database.String, nullable=False, unique=True)
     senha = database.Column(database.String, nullable=False)
     foto_perfil = database.Column(database.String, default='default.jpg')
-    viagem = database.relationship('Viagem', backref='viajante', lazy=True)
+    viagem = database.relationship('Viagem', backref='viajante', lazy=True, cascade="all, delete")
 
     def __repr__(self):
         return f"<Viajante {self.nome}>"
@@ -24,7 +24,7 @@ class Viagem(database.Model):
     valor_total = database.Column(database.Float, nullable=False)
     valor_restante = database.Column(database.Float)
     id_viajante = database.Column(database.Integer, database.ForeignKey('viajantes.id', name='fk_viagem_viajante'), nullable=False)
-    atividades = database.relationship('Atividade', backref='viagem', lazy=True)
+    atividades = database.relationship('Atividade', backref='viagem', lazy=True, cascade="all, delete")
 
     def __init__(self, destino, valor_total, id_viajante):
         self.destino = destino

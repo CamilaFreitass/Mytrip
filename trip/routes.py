@@ -70,21 +70,35 @@ def viagem_detalhe(id_viagem):
     return render_template('viagem_detalhe.html', viagem=viagem, form_atividade=form_atividade)
 
 
+# O conversor '<int:id_atividade>' transforma o segmento da URL em 'int' e passa como armento para a função
 @app.route('/atividade/<int:id_atividade>', methods=["GET", "POST"])
 @login_required
+# função view que recebe o id_atividade (inteiro) vindo da URL
 def atividade_detalhe(id_atividade):
+    # busca a atividade pelo id que a função recebeu (id_atividade) ou retorna 404 se não existir
     atividade = Atividade.query.get_or_404(id_atividade)
+    # apartir de 'atividade.id_viagem' busca o objeto viagem
     viagem = Viagem.query.get_or_404(atividade.id_viagem)
+    # instancia o form
     form = FormCriarAtividade()
+    # se for requisição GET, pré-preenche os campos do form com os valores atuais
     if request.method == 'GET':
         form.nome_atividade.data = atividade.nome_atividade
         form.valor_atividade.data = atividade.valor_atividade
+    # se não for GET e o form validou (POST com dados válidos)
     elif form.validate_on_submit():
         atividade.nome_atividade = form.nome_atividade.data
         atividade.valor_atividade = form.valor_atividade.data
-        viagem.atualizar_valor_restante()
-        database.session.commit()
-        return redirect(url_for('viagem_detalhe', id_viagem=viagem.id))
+        try:
+            # chama método da viagem para recalcular/atualizar o valor restante
+            viagem.atualizar_valor_restante()
+            database.session.commit()
+            flash('Atividade editada com sucesso!', 'alert-success')
+            return redirect(url_for('viagem_detalhe', id_viagem=viagem.id))
+        except Exception:
+            database.session.rollback()
+            flash('Erro ao editar atividade!', 'alert-danger')
+            return redirect(url_for('atividade_detalhe', id_atividade=id_atividade))
     return render_template('atividade_detalhe.html', atividade=atividade, form=form, viagem=viagem)
 
 

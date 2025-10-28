@@ -9,6 +9,9 @@
             <p class="card-text text-center mt-3">
                 <strong>Valor total:</strong> R$ {{ viagem.valor_total }}
             </p>
+            <p class="card-text text-center mt-3">
+                <strong>Valor Restante:</strong> R$ {{ viagem.valor_restante }}
+            </p>
             <hr>
 
             <div class="d-flex justify-content-between align-items-center mb-2">
@@ -22,7 +25,10 @@
                             <div>
                                 {{ atividade.nome_atividade }} — R$ {{ atividade.valor_atividade }}
                             </div>
-                            <a href="{{ url_for('atividade_detalhe', id_atividade=atividade.id)}}" class="btn btn-outline-dark">Editar</a>
+                            <div class="d-flex justify-content-end gap-2">
+                                <a href="{{ url_for('atividade_detalhe', id_atividade=atividade.id) }}" class="btn btn-outline-dark btn-sm">Editar</a>
+                                <a href="#" class="btn btn-outline-danger btn-sm">Excluir</a>
+                            </div>
                         </li>
                     {% endfor %}
                 </ul>

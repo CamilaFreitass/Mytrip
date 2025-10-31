@@ -70,6 +70,23 @@ def viagem_detalhe(id_viagem):
     return render_template('viagem_detalhe.html', viagem=viagem, form_atividade=form_atividade)
 
 
+@app.route('/excluir_atividade/<int:id_atividade>', methods=["GET", "POST"])
+@login_required
+def excluir_atividade(id_atividade):
+    atividade = Atividade.query.get(id_atividade)
+    viagem = Viagem.query.get(atividade.id_viagem)
+    if current_user == atividade.viagem.viajante:
+        database.session.delete(atividade)
+        viagem.atualizar_valor_restante()
+        database.session.commit()
+        flash('Atividade excluida com sucesso!', 'alert-success')
+        return redirect(url_for('viagem_detalhe', id_viagem=viagem.id))
+    else:
+        flash('Erro ao excluir atividade!')
+        return redirect(url_for('viagem_detalhe', id_viagem=viagem.id))
+
+
+
 # O conversor '<int:id_atividade>' transforma o segmento da URL em 'int' e passa como armento para a função
 @app.route('/atividade/<int:id_atividade>', methods=["GET", "POST"])
 @login_required

@@ -1,145 +1,69 @@
 {% extends 'base.html' %}
 
-
 {% block body %}
-<div class="row py-5 px-4"> 
-    <div class="col-md-5 mx-auto"> <!-- Profile widget --> 
-        <div class="bg-white shadow rounded overflow-hidden"> 
-            <div class="px-4 pt-0 pb-4 cover"> 
-
-                <div class="d-flex align-items-center profile-head"> 
-                    <div class="d-flex flex-column align-items-center me-3">
-                        <img src="{{ url_for('static', filename='fotos_perfil/' + current_user.foto_perfil) }}" 
-                            alt="Foto de perfil" class="rounded mb-2 img-thumbnail perfil-img">
-                        <button  type="button" class="btn btn-outline-dark  btn-sm w-100" data-bs-toggle="modal" data-bs-target="#editarPerfilModal">    
-                            Edit profile
-                        </button>
-                    </div> 
-                        
-                    <div class="text-white"> 
-                        <h4 class="mt-0 mb-1">{{ current_user.nome }}</h4> 
-                        <p class="small mb-0"> <i class="fas fa-map-marker-alt me-2"></i>New York</p> 
-                    </div> 
-                </div> 
-            </div> 
-            <div class="bg-light p-4 d-flex justify-content-end text-center"> 
-                <ul class="list-inline mb-0"> 
-                    <li class="list-inline-item"> 
-                        <h5 class="font-weight-bold mb-0 d-block">{{ qtd_viagens }}</h5><small class="text-muted"> <i class="fas fa-image mr-1"></i>Viagens</small> 
-                    </li>        
-                </ul> 
-            </div> 
-            <!-- Modal -->
-            <div class="modal fade" id="editarPerfilModal" tabindex="-1" aria-labelledby="editarPerfilModalLabel" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                    <form method="POST" action="{{ url_for('editar_perfil') }}" enctype="multipart/form-data">
-                        {{ form.csrf_token }}
-                        {{ form.hidden_tag() }}
-                        <div class="modal-header">
-                        <h5 class="modal-title" id="editarPerfilModalLabel">Editar Perfil</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-                        </div>
-
-                        <div class="modal-body">
-                        <div class="form-group mb-3">
-                            {{ form.nome.label(class="form-control-label") }}
-                            {% if form.nome.errors  %}
-                                {{ form.nome(class="form-control is-invalid") }}
-                            <div class="invalid-feedback">
-                                {% for erro in form.nome.errors %}
-                                    {{ erro }}
-                                {% endfor %}
-                            </div>
-                            {% else %}
-                                {{ form.nome(class="form-control") }}
-                            {% endif %}
-                        </div>
-                        <div class="form-group mb-3">
-                            {{ form.email.label(class="form-control-label") }}
-                            {% if form.email.errors  %}
-                                {{ form.email(class="form-control is-invalid") }}
-                            <div class="invalid-feedback">
-                                {% for erro in form.email.errors %}
-                                    {{ erro }}
-                                {% endfor %}
-                            </div>
-                            {% else %}
-                                {{ form.email(class="form-control") }}
-                            {% endif %}
-                        </div>
-                        <div class="form-group mb-3">
-                            {{ form.foto_perfil.label }}
-                            {{ form.foto_perfil(class="form-control-file") }}
-                            {% if form.foto_perfil.errors %}
-                                {% for erro in form.foto_perfil.errors %}
-                                    <span class="text-danger">{{ erro }}</span><br>
-                                {% endfor %}
-                            {% endif %}
-                        </div>
-                        </div>
-
-                        <div class="modal-footer">
-                        <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">Cancelar</button>
-                        {{ form.submit_editar_perfil(class="btn btn-dark") }}
-                        </div>
-                    </form>
+   <!-- Page Content-->
+        <div class="container px-4 px-lg-5 mt-navbar">
+            <!-- Heading Row-->
+            <div class="row gx-4 gx-lg-5 align-items-center my-5">
+                <div class="col-lg-7">
+                    <img class="img-fluid rounded mb-4 mb-lg-0 img-menor" src="{{ url_for('static', filename='imagens/fundo.jpg') }}" alt="..." />
+                </div>
+                <div class="col-lg-5">
+                    <h1 class="font-weight-light">Bem-Vinda, Camila!</h1>
+                    <p>Cada viagem é uma chance de respirar novos ares, viver novos momentos e criar memórias que ficam para sempre. Explore seus destinos, acompanhe seus planos e continue escrevendo sua própria jornada pelo mundo. </p>
+                    <div class="py-3">
+                        <form action="{{ url_for('criar_viagem') }}" method="get">
+                            <button type="submit" class="btn btn-outline-dark w-50">Inicia uma nova aventura 🌍</button>
+                        </form>
                     </div>
                 </div>
             </div>
-            <!--fim do modal-->
-            <div class="px-4 py-3"> <h5 class="mb-0">Objetivo</h5> 
-                <div class="p-4 rounded shadow-sm bg-light"> 
-                    <p class="font-italic mb-0">Web Developer</p> 
-                    <p class="font-italic mb-0">Lives in New York</p> 
-                    <p class="font-italic mb-0">Photographer</p> 
-                </div> 
-            </div> 
-            <div class="py-4 px-4">
-                <h4 class="mb-0"><strong>Viagens</strong></h4>
-                <br>
-                {% if viagens_com_percentual %}
-                    <div class="row"> 
-                        {% for item in viagens_com_percentual %}
-                            <div class="col-md-6 mb-4"> <!-- 2 por linha -->
-                                <a href="{{ url_for('viagem_detalhe', id_viagem=item.viagem.id) }}" class="text-decoration-none text-dark">    
-                                    <div class="card bg-light">
-                                        <div class="card-body">
-                                            <h5 class="card-titlek">{{ item.viagem.destino }}</h5>
-                                            <h6 class="card-subtitle mb-2 text-muted"> Orçamento R$ {{ item.viagem.valor_total }}</h6>
-                                            <p class="card-text">With supporting text below as a natural lead-in to additional content.</p>
-                                            <h6 class="card-subtitle mb-2 text-muted"> Orçamento restante R$ {{ item.viagem.valor_restante }}</h6>
-                                            <h7> Percentual gasto:</h7>
-                                            {% if item.percentual_gasto > 0 %}
-                                                <div class="progress mt-2" style="height: 30px;">
-                                                    <div class="progress-bar {{ item.cor }}" role="progressbar" 
-                                                        style="width: {{ '%.1f'|format(item.percentual_gasto) }}%;"  
-                                                        aria-valuenow="{{ '%.1f'|format(item.percentual_gasto) }}"
-                                                        aria-valuemin="0" aria-valuemax="100">
-                                                        {{ "%.1f"|format(item.percentual_gasto) }}%
-                                                    </div>
-                                                </div>
-                                            {% else %}
-                                                <div class="progress mt-2" style="height: 30px;">
-                                                    <div class="progress-bar bg-light text-dark" role="progressbar" style="width: 100%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0 %</div>
-                                                </div>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                </a>    
-                            </div>
-                        {% endfor %}
-                    </div> 
-                {% else %}
-                    <p class="text-center">Não há viagens cadastradas.</p>
-                {% endif %}      
+            <!-- Call to Action-->
+            <div class="card text-white bg-secondary my-5 py-4 text-center">
+                <div class="card-body"><p class="text-white m-0"><strong>Viajar é colecionar momentos, não coisas. Pronta para a próxima aventura?  ✈️</strong></p></div>
             </div>
-            <div class="px-4 py-3">
-                 <form action="{{ url_for('criar_viagem') }}" method="get" class="d-flex justify-content-center">
+            <!-- Content Row-->
+             {% if viagens_com_percentual %}
+            <div class="row gx-4 gx-lg-5">
+                {% for item in viagens_com_percentual %}
+                <div class="col-md-4 mb-5">
+                    <a href="{{ url_for('viagem_detalhe', id_viagem=item.viagem.id) }}" class="text-decoration-none text-dark">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h2 class="card-title">{{ item.viagem.destino }}</h2>
+                                <h6 class="card-subtitle mb-2 text-muted">Orçamento R$ {{ item.viagem.valor_total }}</h6>
+                                <h6 class="card-subtitle mb-2 text-muted">Valor restante R$ {{ item.viagem.valor_restante }}</h6>
+                                <h7>Percentual gasto:</h7>
+                                {% if item.percentual_gasto > 0 %}
+                                    <div class="progress mt-2" style="height: 30px;">
+                                    <div class="progress-bar {{ item.cor }}" role="progressbar" 
+                                        style="width: {{ '%.1f'|format(item.percentual_gasto) }}%;"  
+                                        aria-valuenow="{{ '%.1f'|format(item.percentual_gasto) }}"
+                                        aria-valuemin="0" aria-valuemax="100">
+                                        {{ "%.1f"|format(item.percentual_gasto) }}%
+                                    </div>
+                                    </div>
+                                {% else %}
+                                    <div class="progress mt-2" style="height: 30px;">
+                                    <div class="progress-bar bg-light text-dark" role="progressbar" style="width: 100%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0 %</div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                {% endfor %} 
+            </div>
+            {% else %}
+                <p class="text-center">Não há viagens cadastradas.</p>
+            {% endif %}
+
+            <div class="py-3 text-center">
+                <form action="{{ url_for('criar_viagem') }}" method="get">
                     <button type="submit" class="btn btn-outline-dark w-50">Criar Viagem</button>
                 </form>
-            </div> 
+            </div>
+            <br> 
         </div>
-    </div>
-</div>
+    </body>
 {% endblock %}

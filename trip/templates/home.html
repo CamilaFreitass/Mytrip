@@ -1,42 +1,52 @@
-{% extends 'base.html' %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mytrip</title>
 
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    
+    <!-- CSS Home -->
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='home.css') }}">
 
-{% block body %}
-    <div class="container" style="text-align: center">
-            <h1>My Trip</h1>
-            <br>
-            <h2>Controle de Orçamento</h2>
-            <br>
-        <h2>Registrar Orçamento</h2>
-        <form method="POST">
-            <input type="hidden" name="tipo_form" value="orcamento">
-            <label>Valor do Orçamento:</label>
-            <input type="number" name="valor_orcamento" step="0.01" required>
-            <button type="submit">Registrar</button>
-        </form>
-        <br>
-        <h2>Registrar Atividade</h2>
-        <form method="POST">
-            <input type="hidden" name="tipo_form" value="atividade">
-            <label>Nome da Atividade:</label>
-            <input type="text" name="nome_atividade" required>
-            <label>Custo:</label>
-            <input type="number" name="custo_atividade" step="0.01" required>
-            <button type="submit">Adicionar</button>
-        </form>
-        <br>
-        <h2>Resumo</h2>
-        <p><strong>Orçamento Total:</strong> R$ {{ orcamento_total }}</p>
-        <p><strong>Saldo Restante:</strong> R$ {{ saldo }}</p>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <!-- Marca / Logo -->
+        <a class="navbar-brand" href="#">MyTrip</a>
 
-        <h3>Atividades</h3>
-        <ul>
-            {% for atividade in atividades %}
-                <li>{{ atividade.nome }} — R$ {{ atividade.custo }}</li>
+        <!-- Botão colapsável (hambúrguer) -->
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+        aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <!-- Itens do menu -->
+        <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
+        <ul class="navbar-nav">
+            {% if current_user.is_authenticated %}
+            <li class="nav-item"><a class="nav-link active" href="{{ url_for('home') }}">Home</a></li>
+            <li class="nav-item"><a class="nav-link active" href="{{ url_for('criar_viagem') }}">Criar Viagem</a></li>
+            <li class="nav-item"><a class="nav-link active" href="{{ url_for('perfil') }}">Meu Perfil</a></li>
+            <li class="nav-item"><a class="nav-link active" href="{{ url_for('sair') }}">Sair</a></li>
             {% else %}
-                <li>Nenhuma atividade registrada.</li>
-            {% endfor %}
+            <li class="nav-item"><a class="nav-link active" href="{{ url_for('home') }}">Home</a></li>
+            <li class="nav-item"><a class="nav-link active" href="{{ url_for('acesso') }}">Login</a></li>
+            <li class="nav-item"><a class="nav-link active" href="{{ url_for('acesso') }}">Criar Conta</a></li>
+            {% endif %}
         </ul>
-
+        </div>
     </div>
-{% endblock %}
+    </nav>
+
+    <div class="background">
+        <div class="conteudo">
+            <h1>Explore o mundo com o MyTrip.</h1>
+            <p>MyTrip é um app para controle de orçamento de suas viagens.</p>
+            <a class="btn btn-outline-light" href="{{ url_for('acesso') }}">Criar Conta</a>
+            <a class="btn btn-outline-light" href="{{ url_for('acesso') }}">Login</a>
+        </div>
+    </div>
+</body>

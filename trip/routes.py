@@ -7,37 +7,40 @@ import secrets
 import os
 from PIL import Image
 
-orcamento_total = 0
 
-atividades = []
 
 @app.route('/', methods=["GET", "POST"])
 def home():
-    global orcamento_total, atividades # sem 'global' a atribuição criaria variáveis locais com o mesmo nome. 
-    
-    if request.method == "POST":
-        tipo_form = request.form.get("tipo_form")
+    return render_template("home.html")
 
-        # Registrar orçamento
-        if tipo_form == "orcamento":
-            orcamento_total = float(request.form["valor_orcamento"])
-            atividades = [] # limpa atividades ao definir novo orçamento
-            return redirect(url_for("home"))
-        
-        # Registrar atividade
-        elif tipo_form == "atividade":
-            nome = request.form["nome_atividade"]
-            custo = float(request.form["custo_atividade"])
-            atividades.append({"nome": nome, "custo": custo})
-            return redirect(url_for("home"))
-        
-        return redirect(url_for("home"))
-        
-    # calculo saldo restante
-    total_gasto = sum(a["custo"] for a in atividades)
-    saldo = orcamento_total - total_gasto
 
-    return render_template("home.html", orcamento_total=orcamento_total, atividades=atividades, saldo=saldo)
+def calcular_percentual_e_cor(viagens):
+    """
+    Recebe uma lista de objetos Viagem e retorna uma lista de dicionários:
+    { "viagem": Viagem, "percentual_gasto": float, "cor": str }
+    """
+    resultado = []
+    for viagem in viagens:
+        # Usa valor_restante se existir, senão assume valor_total
+        valor_restante = viagem.valor_restante if viagem.valor_restante is not None else viagem.valor_total
+
+        if viagem.valor_total and valor_restante is not None:
+            percentual_gasto = ((viagem.valor_total - valor_restante) / viagem.valor_total) * 100
+            percentual_gasto = max(0, min(percentual_gasto, 100)) # garante entre 0 e 100
+        else:
+            percentual_gasto = 0
+
+        # Define a cor da barra com base no percentual
+        if percentual_gasto <= 50:
+            cor = 'bg-success' # verde
+        elif percentual_gasto <= 80:
+            cor = 'bg-warning' # amarelo
+        else:
+            cor = 'bg-danger'  # vermelho
+
+        resultado.append({"viagem": viagem, "percentual_gasto": percentual_gasto, "cor": cor})
+
+    return resultado 
 
 
 @app.route('/viagem/<int:id_viagem>', methods=["GET", "POST"])
@@ -45,6 +48,11 @@ def home():
 def viagem_detalhe(id_viagem):
     # Busca a viagem pelo id
     viagem = Viagem.query.get_or_404(id_viagem)
+
+    viagens = [viagem]
+
+    # Calcula o percentual e cor das barras usando a função auxiliar
+    viagens_com_percentual = calcular_percentual_e_cor(viagens)
 
     # Verifica se a viagem pertence ao usuário logado
     if viagem.id_viajante != current_user.id:
@@ -67,7 +75,7 @@ def viagem_detalhe(id_viagem):
         flash('Atividade adicionada com sucesso!', 'alert-success')
         return redirect(url_for('viagem_detalhe', id_viagem=id_viagem))
 
-    return render_template('viagem_detalhe.html', viagem=viagem, form_atividade=form_atividade)
+    return render_template('viagem_detalhe.html', viagem=viagem, form_atividade=form_atividade, viagens_com_percentual=viagens_com_percentual)
 
 
 @app.route('/excluir_atividade/<int:id_atividade>', methods=["GET", "POST"])
@@ -154,35 +162,6 @@ def sair():
     return redirect(url_for('home'))
 
 
-def calcular_percentual_e_cor(viagens):
-    """
-    Recebe uma lista de objetos Viagem e retorna uma lista de dicionários:
-    { "viagem": Viagem, "percentual_gasto": float, "cor": str }
-    """
-    resultado = []
-    for viagem in viagens:
-        # Usa valor_restante se existir, senão assume valor_total
-        valor_restante = viagem.valor_restante if viagem.valor_restante is not None else viagem.valor_total
-
-        if viagem.valor_total and valor_restante is not None:
-            percentual_gasto = ((viagem.valor_total - valor_restante) / viagem.valor_total) * 100
-            percentual_gasto = max(0, min(percentual_gasto, 100)) # garante entre 0 e 100
-        else:
-            percentual_gasto = 0
-
-        # Define a cor da barra com base no percentual
-        if percentual_gasto <= 50:
-            cor = 'bg-success' # verde
-        elif percentual_gasto <= 80:
-            cor = 'bg-warning' # amarelo
-        else:
-            cor = 'bg-danger'  # vermelho
-
-        resultado.append({"viagem": viagem, "percentual_gasto": percentual_gasto, "cor": cor})
-
-    return resultado 
-
-
 @app.route('/perfil')
 @login_required
 def perfil():
@@ -201,12 +180,8 @@ def perfil():
     # Calcula o percentual e cor das barras usando a função auxiliar
     viagens_com_percentual = calcular_percentual_e_cor(viagens_usuario)
 
-    # mostra a foto de perfil
-    foto_perfil = url_for('static', filename='fotos_perfil/{}'.format(current_user.foto_perfil))
-
     return render_template(
-        'perfil.html', 
-        foto_perfil=foto_perfil, 
+        'perfil.html',  
         form=form, 
         qtd_viagens=qtd_viagens, 
         viagens_usuario=viagens_usuario,

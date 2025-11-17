@@ -2,29 +2,31 @@
 
 
 {% block body %}
-    <div class="container mt-5">
-        <div class="row justify-content-center">
-            <div class="col-lg-8">
-                <div class="card">
-                    <div class="card-header bg-dark text-white text-center">
-                        <h2>Criar viagem</h2>
-                    </div>
-                    <div class="card-body">
+        <div class="container mt-5 pt-5">
+            <div class="card mx-auto" style="max-width: 600px;">
+                <div class="card-body">
+                    <div class="form-container">
                         <form method="POST" action="{{ url_for('criar_viagem') }}" enctype="multipart/form-data">
                             {{ form.hidden_tag() }}
-                        <div class="mb-3">
-                            {{ form.destino.label(class="form-label") }}
-                            {{ form.destino(class="form-control") }}
-                        </div>
-                        <div class="mb-3">
-                            {{ form.valor_total.label(class="form-label") }}
-                            {{ form.valor_total(class="form-control") }}
-                        </div>
-                        {{ form.submit_viagem(class="btn btn-primary") }}
+                            <h2 class="card-title text-center"><strong>Novo Destino</strong></h2>
+                            <br>
+                            <div class="form-group">
+                                {{ form.destino(class="form-control", placeholder="Destino da viagem") }}
+                            </div>
+                            <br>
+                            <div class="form-group">
+                                {{ form.valor_total(class="form-control", placeholder="Valor total da viagem") }}
+                            </div>
+                            <br>
+                            <div class="d-flex justify-content-center align-items-center gap-3 mt-4">
+                                <a href="{{ url_for('perfil') }}" class="btn btn-secondary">Voltar</a>
+                                
+                                {{ form.submit_viagem(class="btn btn-outline-secondary") }}
+                                
+                            </div>
                         </form>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 {% endblock %}

@@ -1,0 +1,85 @@
+/* Remove margens padrão e define altura total */
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+}
+
+/* 🔹 Seção de fundo com a imagem e overlay escuro */
+.background {
+    position: relative;
+    height: 100vh;
+    width: 100%;
+    background: 
+        linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)),
+        url("imagens/fundo.jpg") center center / cover no-repeat;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* 🔹 Conteúdo centralizado sobre o fundo */
+.conteudo {
+    color: white;
+    text-align: center;
+    z-index: 1;
+}
+
+.conteudo h1 {
+    font-size: 3rem;
+    margin-bottom: 10px;
+}
+
+.conteudo p {
+    font-size: 1.3rem;
+}
+
+/* 🔹 Fonte suave */
+body {
+    font-family: "Poppins", sans-serif;
+}
+
+.navbar {
+    background-color: #000000 !important; /* preto sólido */
+    position: fixed; /* fixa no topo da página */
+    top: 0;
+    width: 100%;
+    z-index: 10;
+}
+
+.navbar-brand {
+    margin-left: 100px; /* aumenta o espaço à esquerda */
+    color: #ffffff !important;
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
+}
+
+
+@media (max-width: 991px) {
+  .navbar-collapse {
+    position: absolute;
+    top: 60px;          /* abaixo do navbar */
+    right: 20px;        /* distância da borda direita */
+    width: 150px;       /* largura da caixinha */
+    background: rgba(0, 0, 0, 0.65); /* atualmente translúcida */
+    border-radius: 10px;
+    padding: 10px 0;
+    z-index: 20;        /* garante que fique acima de tudo */
+  }
+}
+
+.navbar-nav {
+    text-align: center;  /* alinha os itens à direita */
+}
+
+.mt-navbar {
+    margin-top: 120px; /* ajuste conforme a altura do navbar */
+}
+
+.img-menor {
+    max-width: 80%;   /* reduz o tamanho mantendo a proporção */
+    display: block;
+    margin: 0 auto;   /* centraliza dentro da coluna */
+}

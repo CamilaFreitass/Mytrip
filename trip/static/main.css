@@ -1,8 +1,89 @@
-body{
-    background: #f7f7ff;
-    margin-top:20px;
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #fff;
+  display: flex;
+  flex-direction: column;
 }
 
-.me-2 {
-    margin-right: .5rem!important;
+main {
+    flex: 1; /* empurra o footer para baixo */
+}
+
+/* Parte superior com imagem */
+.top-banner {
+  width: 100%;
+  height: 400px; /* altura da faixa superior */
+  background-image: url("imagens/fundo.jpg");
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+
+/* Camada escura transparente sobre a imagem (opcional) */
+.top-banner::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4); /* escurece a imagem */
+}
+
+.banner-text {
+  position: relative;
+  color: white;
+  font-size: 2.5rem;          /* tamanho padrão */
+  text-align: center;
+  top: 50%;                    /* centraliza verticalmente */
+  transform: translateY(-20%); /* ajuste abaixo do navbar */
+  z-index: 2;
+  padding: 0 1rem;             /* evita que o texto encoste nas laterais */
+  word-wrap: break-word;       /* quebra linhas se necessário */
+}
+
+/* Ajustes para telas menores */
+@media (max-width: 768px) {
+  .banner-text {
+    font-size: 2rem;           /* reduz o tamanho em tablets */
+  }
+}
+
+@media (max-width: 480px) {
+  .banner-text {
+    font-size: 1.5rem;         /* reduz ainda mais em celulares */
+  }
+}
+
+/* Conteúdo abaixo */
+.content {
+  background-color: white;
+  padding: 2rem;
+}
+
+
+
+.banner-card {
+  width: 100%;
+  height: 220px;          /* 🔹 altura menor e proporcional aos cards */
+  border: none;
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+}
+
+.banner-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(80%);
+}
+
+.text-shadow {
+  text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7);
+}
+
+footer {
+    margin-top: 40px;  /* Espaço antes do footer */
 }

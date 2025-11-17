@@ -3,8 +3,6 @@
 
 {% block body %}
     <div class="container mt-4">
-        <h1>Faça login ou Crie sua conta</h1>
-        <hr>
         <div class="row">
             <div class="col">
                 <form method="POST" action="" class="border p-4 mt-2">
@@ -42,7 +40,7 @@
                             {{ form_login.lembrar_dados(class="form-check-input") }}
                         </div>
                     </fieldset>
-                    {{ form_login.submit_login(class="btn btn-primary mt-2") }}
+                    {{ form_login.submit_login(class="btn btn-secondary mt-2") }}
                 </form>
             </div>
             <div class="col">
@@ -103,7 +101,7 @@
                             {% endif %}
                         </div>
                     </fieldset>
-                    {{ form_criarconta.submit_criar_conta(class="btn btn-primary mt-2") }}
+                    {{ form_criarconta.submit_criar_conta(class="btn btn-secondary mt-2") }}
                 </form>
             </div>
         </div>

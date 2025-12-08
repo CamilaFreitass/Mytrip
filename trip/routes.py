@@ -6,6 +6,7 @@ from flask_login import login_user, logout_user, current_user, login_required
 import secrets 
 import os
 from PIL import Image
+from trip import google
 
 
 
@@ -132,6 +133,7 @@ def acesso():
     form_login = FormLogin()
     form_criarconta = FormCriarConta()
 
+    # Processar login com formulário tradicional
     if form_login.validate_on_submit() and 'submit_login' in request.form:
         viajante = Viajante.query.filter_by(email=form_login.email.data).first()
         if viajante and bcrypt.check_password_hash(viajante.senha, form_login.senha.data):
@@ -144,14 +146,78 @@ def acesso():
                 return redirect(url_for('perfil'))
         else:
             flash(f'Falha no Login. E-mail ou Senha Incorretos', 'alert-danger')
+
+    # Processar criação de conta
     if form_criarconta.validate_on_submit() and 'submit_criar_conta' in request.form:
         senha_cript = bcrypt.generate_password_hash(form_criarconta.senha.data)
-        viajante = Viajante(nome=form_criarconta.nome.data, email=form_criarconta.email.data, senha=senha_cript)
+
+        viajante = Viajante(
+            nome=form_criarconta.nome.data, 
+            email=form_criarconta.email.data, 
+            senha=senha_cript,
+            is_verified=False
+            )
+
         database.session.add(viajante)
         database.session.commit()
-        flash(f'Conta criada com sucesso para o viajante: {form_criarconta.nome.data}', 'alert-success')
+
+        flash("Conta criada com sucesso!.", "alert-success")
         return redirect(url_for('perfil'))
+    
+    # Processar login com Google
+    if 'google_login' in request.args:  # Verifica se foi chamado o login do Google
+        redirect_uri = url_for('auth', _external=True)
+        return google.authorize_redirect(redirect_uri)
+
     return render_template('acesso.html', form_login=form_login, form_criarconta=form_criarconta)
+
+
+@app.route('/auth')
+def auth():
+    try:
+        print("Tentando obter token...")
+        token = google.authorize_access_token()
+
+        if not token:
+            flash('Falha ao obter o token do Google.', 'alert-danger')
+            print("Token não obtido.")
+            return redirect(url_for('acesso'))
+
+        print("Tentando obter informações do usuário...")
+        resp = google.get('userinfo')
+        if resp.status_code != 200:
+            flash('Falha ao obter informações do usuário do Google.', 'alert-danger')
+            print("Erro ao obter informações do usuário:", resp.status_code)
+            return redirect(url_for('acesso'))
+
+        # obtem as informações do usuário
+        user_info = resp.json()
+
+        if 'email' not in user_info:
+            flash('Email não encontrado nas informações do usuário.', 'alert-danger')
+            print("Email não encontrado nas informações do usuário.")
+            return redirect(url_for('acesso'))
+
+        # Verifica se o usuário já existe no banco de dados
+        viajante = Viajante.query.filter_by(email=user_info['email']).first()
+        if not viajante:
+            # Cria um novo visitante se não existir
+            viajante = Viajante(
+                nome=user_info.get('name'),
+                email=user_info['email'],
+                senha=None
+            )
+            database.session.add(viajante)
+            database.session.commit()
+
+        login_user(viajante)
+        flash('Login com Google realizado com sucesso!', 'alert-success')
+        return redirect(url_for('perfil'))
+
+    except Exception as e:
+        print(f'Ocorreu um erro: {str(e)}')  # Mostra o erro no console
+        flash(f'Ocorreu um erro: {str(e)}', 'alert-danger')
+        return redirect(url_for('acesso'))
 
 
 @app.route('/sair')
@@ -159,7 +225,7 @@ def acesso():
 def sair():
     logout_user()
     flash(f'Logout Feito com Sucesso!', 'alert-success')
-    return redirect(url_for('home'))
+    return redirect(url_for('acesso'))
 
 
 @app.route('/perfil')

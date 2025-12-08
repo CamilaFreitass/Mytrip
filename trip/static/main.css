@@ -4,6 +4,7 @@ body {
   background-color: #fff;
   display: flex;
   flex-direction: column;
+  padding-top: 80px;
 }
 
 main {
@@ -86,4 +87,8 @@ main {
 
 footer {
     margin-top: 40px;  /* Espaço antes do footer */
+}
+
+.alert-container {
+    margin-top: 80px; /* Ajuste conforme a altura do navbar */
 }

@@ -2,7 +2,7 @@
 
 
 {% block body %}
-    <div class="container mt-4">
+    <div class="container mt-5 pt-5">
         <div class="row">
             <div class="col">
                 <form method="POST" action="" class="border p-4 mt-2">
@@ -105,5 +105,23 @@
                 </form>
             </div>
         </div>
+        <br>
+        <hr>
+        <!-- Botão Login com Google -->
+        <div class="d-flex justify-content-center mt-3">
+            <a href="{{ url_for('acesso', google_login=true) }}" class="btn btn-light d-flex align-items-center shadow-sm"
+            style="border: 1px solid #ccc; border-radius: 4px; padding: 8px 12px; text-decoration: none;">
+                
+                <!-- Ícone do Google (SVG oficial) -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 48 48" style="margin-right:10px;">
+                    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.23 9.21 3.64l6.85-6.85C35.61 2.95 30.17 0.5 24 0.5 14.62 0.5 6.51 5.98 2.78 13.44l7.98 6.19C12.6 13.02 17.8 9.5 24 9.5z"/>
+                    <path fill="#4285F4" d="M46.5 24.5c0-1.64-.15-3.23-.44-4.76H24v9.04h12.65c-.55 2.97-2.26 5.49-4.81 7.17l7.38 5.72C43.86 37.59 46.5 31.54 46.5 24.5z"/>
+                    <path fill="#FBBC05" d="M10.76 27.63c-.56-1.65-.86-3.41-.86-5.13 0-1.72.3-3.49.86-5.13l-7.98-6.19C.77 15.08.5 19.69.5 24.5c0 4.81.27 9.42 2.28 13.32l7.98-6.19z"/>
+                    <path fill="#34A853" d="M24 47.5c6.17 0 11.61-2.45 15.57-6.41l-7.38-5.72c-2.01 1.36-4.57 2.17-7.19 2.17-6.2 0-11.4-3.52-13.24-8.94l-7.98 6.19C6.51 42.02 14.62 47.5 24 47.5z"/>
+                </svg>
+
+                <span>Entrar com Google</span>
+            </a>
+        </div> 
     </div>
 {% endblock %}

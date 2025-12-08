@@ -8,8 +8,8 @@ class Viajante(database.Model, UserMixin):
     id = database.Column(database.Integer, primary_key=True)
     nome = database.Column(database.String, nullable=False)
     email = database.Column(database.String, nullable=False, unique=True)
-    senha = database.Column(database.String, nullable=False)
-    foto_perfil = database.Column(database.String, default='default.jpg')
+    senha = database.Column(database.String, nullable=True)
+    is_verified = database.Column(database.Boolean, default=False)
     viagem = database.relationship('Viagem', backref='viajante', lazy=True, cascade="all, delete")
 
     def __repr__(self):

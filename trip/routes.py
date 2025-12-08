@@ -1,13 +1,13 @@
 from flask import render_template, redirect, url_for, request, flash, abort
-from trip import app, database, bcrypt
+from trip import app, database, bcrypt, google, mail, s
 from trip.forms import FormCriarConta, FormLogin, FormEditarPerfil, FormCriarViagem, FormCriarAtividade
 from trip.models import Viajante, Viagem, Atividade
 from flask_login import login_user, logout_user, current_user, login_required
 import secrets 
 import os
 from PIL import Image
-from trip import google
-
+from flask_mail import Message
+from itsdangerous import BadTimeSignature, SignatureExpired
 
 
 @app.route('/', methods=["GET", "POST"])
@@ -128,6 +128,81 @@ def atividade_detalhe(id_atividade):
     return render_template('atividade_detalhe.html', atividade=atividade, form=form, viagem=viagem)
 
 
+def generate_confirmation_token(email):
+    return s.dumps(email, salt='email-confirm-salt')
+
+
+def send_confirmation_email(user_email):
+    token = generate_confirmation_token(user_email)
+    
+    # Aponta para a nova rota que você criará (passo 3)
+    confirm_url = url_for('confirm_email', token=token, _external=True)
+    
+    msg = Message(
+        subject='Confirme Seu E-mail para Ativar Sua Conta',
+        recipients=[user_email],
+        html=f"""
+        <p>Obrigado por se registrar no MyTrip! Por favor, clique no link abaixo para ativar sua conta:</p>
+        <p><a href="{confirm_url}">Confirmar Conta Agora</a></p>
+        <p>O link expira em 1 hora.</p>
+        """
+    )
+    # A linha abaixo deve ser executada de forma assíncrona em produção (opcional)
+    mail.send(msg)
+
+
+# Função para decodificar o token (coloque no seu app.py)
+def confirm_token(token, expiration=3600): # 1 hora
+    try:
+        email = s.loads(
+            token,
+            salt='email-confirm-salt',
+            max_age=expiration
+        )
+    except SignatureExpired:
+        return 'expired' # Token expirou
+    except BadTimeSignature:
+        return 'invalid' # Token inválido ou alterado
+    return email
+
+
+@app.route('/confirm/<token>')
+def confirm_email(token):
+    email_ou_status = confirm_token(token)
+
+    if email_ou_status == 'expired':
+        flash('O link de confirmação expirou. Por favor, tente logar para receber um novo link.', 'alert-danger')
+        return redirect(url_for('acesso'))
+    
+    if email_ou_status == 'invalid':
+        flash('O link de confirmação é inválido.', 'alert-danger')
+        return redirect(url_for('acesso'))
+
+    # Se a decodificação foi bem-sucedida, temos o e-mail
+    email = email_ou_status
+    
+    viajante = Viajante.query.filter_by(email=email).first()
+
+    if viajante:
+        if viajante.is_verified:
+            flash('Sua conta já está ativada. Faça o login.', 'alert-success')
+        else:
+            # 1. Atualizar o status
+            viajante.is_verified = True
+            database.session.commit()
+            
+            # 2. Fazer o login imediatamente (opcional, mas conveniente)
+            login_user(viajante) 
+
+            flash('Parabéns! Sua conta foi ativada com sucesso!', 'alert-success')
+            return redirect(url_for('perfil'))
+    else:
+        # Caso o e-mail no token não corresponda a nenhum usuário
+        flash('Erro: Usuário não encontrado para este link de confirmação.', 'alert-danger')
+        
+    return redirect(url_for('acesso'))
+
+
 @app.route('/acesso', methods=["GET", "POST"])
 def acesso():
     form_login = FormLogin()
@@ -137,6 +212,12 @@ def acesso():
     if form_login.validate_on_submit() and 'submit_login' in request.form:
         viajante = Viajante.query.filter_by(email=form_login.email.data).first()
         if viajante and bcrypt.check_password_hash(viajante.senha, form_login.senha.data):
+
+            # NOVO: Checagem de verificação de e-mail
+            if not viajante.is_verified:
+                flash('Sua conta ainda não foi ativada. Verifique seu e-mail para o link de confirmação.', 'alert-warning')
+                return redirect(url_for('acesso'))
+
             login_user(viajante, remember=form_login.lembrar_dados.data)
             flash(f'Login feito com sucesso no e-mail: {form_login.email.data}', 'alert-success')
             par_next = request.args.get('next')
@@ -155,14 +236,18 @@ def acesso():
             nome=form_criarconta.nome.data, 
             email=form_criarconta.email.data, 
             senha=senha_cript,
-            is_verified=False
+            is_verified=False # O usuário é criado como NÃO verificado
             )
 
         database.session.add(viajante)
         database.session.commit()
 
-        flash("Conta criada com sucesso!.", "alert-success")
-        return redirect(url_for('perfil'))
+        # Enviar o e-mail de confirmação
+        send_confirmation_email(viajante.email)
+
+        # Alerta o usuário para verificar o e-mail, NÃO faz login
+        flash(f"Conta criada com sucesso! Enviamos um link de ativação para {viajante.email}. Por favor, verifique sua caixa de entrada.", "alert-info")
+        return redirect(url_for('acesso')) # Redireciona para a mesma página de acesso/login
     
     # Processar login com Google
     if 'google_login' in request.args:  # Verifica se foi chamado o login do Google

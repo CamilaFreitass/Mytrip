@@ -9,7 +9,7 @@
                     <img class="img-fluid rounded mb-4 mb-lg-0 img-menor" src="{{ url_for('static', filename='imagens/fundo.jpg') }}" alt="..." />
                 </div>
                 <div class="col-lg-5">
-                    <h1 class="font-weight-light">Bem-Vinda, Camila!</h1>
+                    <h1 class="font-weight-light">Bem-Vindo(a), {{ current_user.nome }}</h1>
                     <p>Cada viagem é uma chance de respirar novos ares, viver novos momentos e criar memórias que ficam para sempre. Explore seus destinos, acompanhe seus planos e continue escrevendo sua própria jornada pelo mundo. </p>
                     <div class="py-3">
                         <form action="{{ url_for('criar_viagem') }}" method="get">

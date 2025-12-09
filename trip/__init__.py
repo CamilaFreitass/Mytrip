@@ -35,6 +35,7 @@ app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
 app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
 
+# inicializando um objeto serializador seguro que será usado para criar e validar tokens de uso temporário
 s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
 # Configuração do OAuth com o Google

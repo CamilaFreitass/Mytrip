@@ -24,7 +24,7 @@ class Viagem(database.Model):
     valor_total = database.Column(database.Float, nullable=False)
     valor_restante = database.Column(database.Float)
     id_viajante = database.Column(database.Integer, database.ForeignKey('viajantes.id', name='fk_viagem_viajante'), nullable=False)
-    atividades = database.relationship('Atividade', backref='viagem', lazy=True, cascade="all, delete")
+    atividades = database.relationship('Atividade', backref=database.backref('viagem', passive_deletes=True), lazy=True, cascade="all, delete-orphan")
 
     def __init__(self, destino, valor_total, id_viajante):
         self.destino = destino
@@ -48,7 +48,7 @@ class Atividade(database.Model):
     id = database.Column(database.Integer, primary_key=True)
     nome_atividade = database.Column(database.String, nullable=False)
     valor_atividade = database.Column(database.Float, nullable=False)
-    id_viagem = database.Column(database.Integer, database.ForeignKey('viagens.id', name='fk_atividade_viagem'), nullable=False)
+    id_viagem = database.Column(database.Integer, database.ForeignKey('viagens.id', name='fk_atividade_viagem', ondelete="CASCADE"), nullable=False)
 
     def __repr__(self):
         return f"<Atividade {self.nome_atividade}>"

@@ -1,32 +1,73 @@
 {% extends 'base.html' %}
 
-
 {% block body %}
-        <div class="container mt-5 pt-5">
-            <div class="card mx-auto" style="max-width: 600px;">
-                <div class="card-body">
-                    <div class="form-container">
-                        <form method="POST" action="{{ url_for('criar_viagem') }}" enctype="multipart/form-data">
-                            {{ form.hidden_tag() }}
-                            <h2 class="card-title text-center"><strong>Novo Destino</strong></h2>
-                            <br>
-                            <div class="form-group">
-                                {{ form.destino(class="form-control", placeholder="Destino da viagem") }}
-                            </div>
-                            <br>
-                            <div class="form-group">
-                                {{ form.valor_total(class="form-control", placeholder="Valor total da viagem") }}
-                            </div>
-                            <br>
-                            <div class="d-flex justify-content-center align-items-center gap-3 mt-4">
-                                <a href="{{ url_for('perfil') }}" class="btn btn-secondary">Voltar</a>
-                                
-                                {{ form.submit_viagem(class="btn btn-outline-secondary") }}
-                                
-                            </div>
-                        </form>
+<div class="container mt-5 pt-5">
+    <div class="card mx-auto" style="max-width: 600px;">
+        <div class="card-body">
+            <div class="form-container">
+
+                <form method="POST"
+                      action="
+                        {% if modo == 'editar' %}
+                            {{ url_for('editar_viagem', id_viagem=viagem.id) }}
+                        {% else %}
+                            {{ url_for('criar_viagem') }}
+                        {% endif %}
+                      "
+                      enctype="multipart/form-data">
+
+                    {{ form.hidden_tag() }}
+
+                    <h2 class="card-title text-center">
+                        <strong>
+                            {% if modo == 'editar' %}
+                                Editar Viagem
+                            {% else %}
+                                Novo Destino
+                            {% endif %}
+                        </strong>
+                    </h2>
+
+                    <br>
+
+                    <div class="form-group">
+                        {{ form.destino(
+                            class="form-control",
+                            placeholder="Destino da viagem"
+                        ) }}
                     </div>
-                </div>
+
+                    <br>
+
+                    <div class="form-group">
+                        {{ form.valor_total(
+                            class="form-control",
+                            placeholder="Valor total da viagem"
+                        ) }}
+                    </div>
+
+                    <br>
+
+                    <div class="d-flex justify-content-center align-items-center gap-3 mt-4">
+
+                        <a href="{{ url_for('perfil') }}" class="btn btn-secondary">Voltar</a>
+
+                        {% if modo == 'editar' %}
+                            <button type="submit" class="btn btn-outline-dark">
+                                Atualizar
+                            </button>
+                        {% else %}
+                            {{ form.submit_viagem(class="btn btn-outline-secondary") }}
+                        {% endif %}
+
+                    </div>
+
+                </form>
+
             </div>
         </div>
+    </div>
+</div>
 {% endblock %}
+
+

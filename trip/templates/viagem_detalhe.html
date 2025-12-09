@@ -89,6 +89,16 @@
                     </button>
                 </div>
             </div>
+            <div class="card-footer d-flex justify-content-center gap-3">
+                <a href="{{ url_for('editar_viagem', id_viagem=viagem.id) }}" class="btn btn-outline-dark btn-sm">
+                    Editar viagem
+                </a>
+               <form action="{{ url_for('deletar_viagem', viagem_id=viagem.id) }}" method="POST" style="display:inline;">
+                    <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Tem certeza que deseja excluir esta viagem?');">
+                        Deletar viagem
+                    </button>
+                </form>
+            </div>
         </div>
         </div>
     

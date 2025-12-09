@@ -26,19 +26,6 @@ class FormLogin(FlaskForm):
     senha = PasswordField('Senha', validators=[DataRequired(), Length(6, 20)])
     lembrar_dados = BooleanField('Lembrar Dados de Acesso')
     submit_login = SubmitField('Logar')
-
-
-class FormEditarPerfil(FlaskForm):
-    nome = StringField('Nome do viajante', validators=[DataRequired()])
-    email = StringField('E-mail', validators=[DataRequired(), Email()])
-    foto_perfil = FileField('Atualizar Foto de perfil', validators=[FileAllowed(['jpg', 'png'])])
-    submit_editar_perfil = SubmitField('Editar Perfil')
-
-    def validate_email(self, email):
-        if current_user.email != email.data:
-            viajante = Viajante.query.filter_by(email=email.data).first()
-            if viajante:
-                raise ValidationError('Já existe um usuário com esse e-mail. Cadastre outro e-mail')
             
 
 class FormCriarViagem(FlaskForm):

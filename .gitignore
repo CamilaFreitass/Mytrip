@@ -21,3 +21,8 @@ Thumbs.db
 
 # Uploads locais
 trip/static/fotos_perfil/
+
+.pytest_cache
+
+serviceAccountKey.json
+

@@ -1,146 +1,271 @@
 from flask import render_template, redirect, url_for, request, flash, abort
-from trip import app, database, bcrypt, google
+from trip import app, bcrypt, google
 from trip.forms import FormCriarConta, FormLogin, FormCriarViagem, FormCriarAtividade
 from trip.models import Viajante, Viagem, Atividade
 from flask_login import login_user, logout_user, current_user, login_required
 from trip.utility import calcular_percentual_e_cor, confirm_token, send_confirmation_email
-
+from .firestore_service import (
+    get_viagem_ref,
+    get_atividades_ref,
+    atualizar_valor_restante,
+    criar_atividade, 
+    buscar_viagem_por_id,
+    deletar_atividade,
+    atualizar_viagem,
+    deletar_viagem_completa,
+    buscar_atividade_por_id,
+    atualizar_atividade,
+    buscar_viajante_por_email,
+    atualizar_status_verificacao,
+    criar_viajante,
+    criar_nova_viagem,
+    listar_viagens_por_viajante)
 
 @app.route('/', methods=["GET", "POST"])
 def home():
     return render_template("home.html")
 
 
-@app.route('/viagem/<int:id_viagem>', methods=["GET", "POST"])
+# @app.route('/viagem/<string:id_viagem>', methods=["GET", "POST"])
+# @login_required
+# def viagem_detalhe(id_viagem):
+#     # ATENÇÃO: Mudamos o tipo de 'id_viagem' para <string:id_viagem>
+
+#     # 1. BUSCAR A VIAGEM
+#     # Acessa o Documento Viagem no Firestore
+#     # Você precisará de uma nova função no firestore_service.py: buscar_viagem_por_id
+    
+#     viagem_data = buscar_viagem_por_id(current_user.get_id(), id_viagem)
+    
+#     if not viagem_data:
+#          abort(404)
+
+#     # 2. VERIFICAÇÃO DE PERMISSÃO E MAPPER
+#     # A permissão é verificada na busca (pois a Viagem está aninhada ao Viajante)
+#     # Mas se a viagem não for aninhada, você faria:
+#     # if viagem_data['id_viajante'] != current_user.get_id():
+#     #     abort(403) 
+    
+#     # Mapeia os dados do dicionário do Firestore para a classe Viagem
+#     viagem = viagem_data
+    
+#     # 3. CONFIGURAÇÃO DE RENDER
+#     # O calculo precisa receber a lista de objetos Viagem (ou dicionários com dados)
+#     viagens_com_percentual = calcular_percentual_e_cor([viagem_data]) # Passa a lista de dicionários
+#     viagem_percentual = viagens_com_percentual[0] # Pega o resultado para usar no template
+
+#     form_atividade = FormCriarAtividade()
+
+#     if form_atividade.validate_on_submit():
+        
+#         # 4. CRIAR NOVA ATIVIDADE NO FIRESTORE
+#         dados_nova_atividade = {
+#             'nome_atividade': form_atividade.nome_atividade.data,
+#             'valor_atividade': form_atividade.valor_atividade.data,
+#             'id_viagem': id_viagem, # Referência ID, mas no Firestore ela será uma subcoleção
+#             # Você pode incluir outros campos como data de criação, se necessário
+#         }
+        
+#         # Você precisará de uma nova função no firestore_service.py: criar_atividade
+#         criar_atividade(current_user.get_id(), id_viagem, dados_nova_atividade)
+
+#         # 5. ATUALIZAR VALOR RESTANTE (Lógica NoSQL)
+#         # Chamamos a função de serviço para recalcular e atualizar o documento pai (Viagem)
+#         try:
+#              atualizar_valor_restante(current_user.get_id(), id_viagem)
+#              flash('Atividade adicionada com sucesso!', 'alert-success')
+#              return redirect(url_for('viagem_detalhe', id_viagem=id_viagem))
+#         except Exception as e:
+#              # Lidar com erros de DB ou NotFound
+#              flash(f'Erro ao salvar ou atualizar: {e}', 'alert-danger')
+#              app.logger.error(f"Erro ao atualizar valor: {e}")
+#              return redirect(url_for('viagem_detalhe', id_viagem=id_viagem))
+
+
+    # return render_template('viagem_detalhe.html', viagem=viagem, form_atividade=form_atividade, viagens_com_percentual=viagens_com_percentual) 
+
+
+@app.route('/viagem/<string:id_viagem>', methods=["GET", "POST"])
 @login_required
 def viagem_detalhe(id_viagem):
-    # Busca a viagem pelo id
-    viagem = Viagem.query.get_or_404(id_viagem)
+    viajante_id = current_user.get_id()
 
-    viagens = [viagem]
+    # 1. Busca os dados crus do Firestore (Dicionário)
+    viagem_raw = buscar_viagem_por_id(viajante_id, id_viagem)
+    
+    if not viagem_raw:
+        abort(404)
 
-    # Calcula o percentual e cor das barras usando a função auxiliar
-    viagens_com_percentual = calcular_percentual_e_cor(viagens)
+    # 2. CONVERTE PARA OBJETO (Model)
+    # Isso garante que se 'valor_total' não existir no banco, 
+    # o objeto terá o valor 0 em vez de quebrar o site.
+    viagem = Viagem(viagem_raw)
 
-    # Verifica se a viagem pertence ao usuário logado
-    if viagem.id_viajante != current_user.id:
-        abort(403)  # Proíbe acesso a viagens de outros usuários
+    # 3. CALCULA PERCENTUAL E COR
+    # Passamos a lista contendo o nosso objeto
+    viagens_formatadas = calcular_percentual_e_cor([viagem])
+    # Pegamos o objeto de volta, agora com os atributos 'percentual' e 'cor' injetados
+    viagem_pronta = viagens_formatadas[0]
 
     form_atividade = FormCriarAtividade()
 
     if form_atividade.validate_on_submit():
-        nova_atividade = Atividade(
-            nome_atividade=form_atividade.nome_atividade.data,
-            valor_atividade=form_atividade.valor_atividade.data,
-            id_viagem=viagem.id
-        )
-        database.session.add(nova_atividade)
-
-        # atualiza o valor restante da viagem
-        viagem.atualizar_valor_restante()
-
-        database.session.commit()
-        flash('Atividade adicionada com sucesso!', 'alert-success')
+        # ... (lógica de criar atividade permanece igual) ...
+        dados_nova_atividade = {
+            'nome_atividade': form_atividade.nome_atividade.data,
+            'valor_atividade': float(form_atividade.valor_atividade.data),
+            'id_viagem': id_viagem
+        }
+        criar_atividade(viajante_id, id_viagem, dados_nova_atividade)
+        atualizar_valor_restante(viajante_id, id_viagem)
+        
+        flash('Atividade adicionada!', 'alert-success')
         return redirect(url_for('viagem_detalhe', id_viagem=id_viagem))
 
-    return render_template('viagem_detalhe.html', viagem=viagem, form_atividade=form_atividade, viagens_com_percentual=viagens_com_percentual)
+    # ENVIAMOS 'viagem_pronta' que é o OBJETO com todos os campos
+    return render_template('viagem_detalhe.html', 
+                           viagem=viagem_pronta, 
+                           form_atividade=form_atividade)
 
 
-@app.route('/viagem/<int:id_viagem>/editar', methods=['GET', 'POST'])
+@app.route('/viagem/<string:id_viagem>/editar', methods=['GET', 'POST'])
 @login_required
 def editar_viagem(id_viagem):
-    viagem = Viagem.query.get(id_viagem)
+    # 1. Busca os dados brutos (dicionário) do Firestore
+    viajante_id = current_user.get_id()
+    viagem_data = buscar_viagem_por_id(viajante_id, id_viagem)
 
-    if viagem.id_viajante != current_user.id:
-        abort(403)
+    if not viagem_data:
+        abort(404)
 
-    form = FormCriarViagem(obj=viagem)  # Preenche o form com dados atuais
+    # 2. Transforma em um objeto da classe Viagem (do seu models.py)
+    # Isso permite que o WTForms preencha o formulário automaticamente com 'obj=viagem'
+    viagem_objeto = Viagem(viagem_data)
+
+    # Preenche o formulário com os dados atuais do objeto
+    form = FormCriarViagem(obj=viagem_objeto)
 
     if form.validate_on_submit():
-        viagem.destino = form.destino.data
-        viagem.valor_total = form.valor_total.data
+        # 3. Prepara os novos dados para salvar
+        novos_dados = {
+            'destino': form.destino.data,
+            'valor_total': form.valor_total.data
+        }
 
-        # recalcular valor restante se o total mudar
-        viagem.atualizar_valor_restante()
+        # 4. Salva no Firestore
+        atualizar_viagem(viajante_id, id_viagem, novos_dados)
 
-        database.session.commit()
+        # 5. RECALCULO: Como o valor_total pode ter mudado, 
+        # atualizamos o valor_restante baseado nas atividades existentes
+        atualizar_valor_restante(viajante_id, id_viagem)
+
         flash('Viagem atualizada com sucesso!', 'alert-success')
         return redirect(url_for('viagem_detalhe', id_viagem=id_viagem))
 
-    return render_template('criar_viagem.html', form=form, modo='editar', viagem=viagem)
+    return render_template('criar_viagem.html', form=form, modo='editar', viagem=viagem_objeto)
 
 
-@app.route('/deletar_viagem/<int:viagem_id>', methods=['POST'])
+@app.route('/deletar_viagem/<string:viagem_id>', methods=['POST'])
 @login_required
 def deletar_viagem(viagem_id):
-    viagem = Viagem.query.get(viagem_id)
+    viajante_id = current_user.get_id()
+    
+    # 1. Tenta buscar a viagem para verificar se ela existe
+    viagem_data = buscar_viagem_por_id(viajante_id, viagem_id)
 
-    if not viagem:
+    if not viagem_data:
         flash('Viagem não encontrada!', 'alert-danger')
         return redirect(url_for('perfil'))
 
-    if current_user == viagem.viajante:
-        database.session.delete(viagem)
-        database.session.commit()   
-        flash('Viagem excluida com sucesso!', 'alert-success')
+    # 2. Verifica a posse (segurança)
+    # Como buscamos usando o viajante_id atual, se retornar dados, ela pertence a ele.
+    if viagem_data.get('id_viajante') == viajante_id:
+        try:
+            # 3. Chama a função de serviço para deletar tudo
+            deletar_viagem_completa(viajante_id, viagem_id)
+            flash('Viagem excluída com sucesso!', 'alert-success')
+            return redirect(url_for('perfil'))
+        except Exception as e:
+            flash(f'Erro ao excluir a viagem: {e}', 'alert-danger')
+            return redirect(url_for('perfil'))
+    else:
+        # Caso o ID da viagem exista mas pertença a outro usuário
+        flash('Você não tem permissão para deletar esta viagem!', 'alert-danger')
         return redirect(url_for('perfil'))
-    else:
-        flash('Erro ao deletar viagem!', 'alert-danger')
-        return redirect(url_for('viagem_detalhe', viagem_id=viagem.id))
 
 
-
-@app.route('/excluir_atividade/<int:id_atividade>', methods=["GET", "POST"])
+@app.route('/excluir_atividade/<string:id_viagem>/<string:id_atividade>', methods=["POST"])
 @login_required
-def excluir_atividade(id_atividade):
-    atividade = Atividade.query.get(id_atividade)
-    viagem = Viagem.query.get(atividade.id_viagem)
-    if current_user == atividade.viagem.viajante:
-        database.session.delete(atividade)
-        viagem.atualizar_valor_restante()
-        database.session.commit()
-        flash('Atividade excluida com sucesso!', 'alert-success')
-        return redirect(url_for('viagem_detalhe', id_viagem=viagem.id))
+def excluir_atividade(id_viagem, id_atividade):
+    viajante_id = current_user.get_id()
+    
+    # 1. Tentamos deletar a atividade usando nossa função de serviço
+    # A função deletar_atividade já verifica a existência internamente
+    sucesso = deletar_atividade(viajante_id, id_viagem, id_atividade)
+
+    if sucesso:
+        # 2. Após deletar, precisamos atualizar o valor restante da viagem pai
+        try:
+            atualizar_valor_restante(viajante_id, id_viagem)
+            flash('Atividade excluída com sucesso!', 'alert-success')
+        except Exception as e:
+            app.logger.error(f"Erro ao recalcular valor após exclusão: {e}")
+            flash('Atividade excluída, mas houve um erro ao atualizar o saldo da viagem.', 'alert-warning')
     else:
-        flash('Erro ao excluir atividade!', 'alert-danger')
-        return redirect(url_for('viagem_detalhe', id_viagem=viagem.id))
+        flash('Erro ao excluir atividade ou atividade não encontrada!', 'alert-danger')
+
+    return redirect(url_for('viagem_detalhe', id_viagem=id_viagem))
 
 
-
-# O conversor '<int:id_atividade>' transforma o segmento da URL em 'int' e passa como armento para a função
-@app.route('/atividade/<int:id_atividade>', methods=["GET", "POST"])
+@app.route('/viagem/<string:id_viagem>/atividade/<string:id_atividade>', methods=["GET", "POST"])
 @login_required
-# função view que recebe o id_atividade (inteiro) vindo da URL
-def atividade_detalhe(id_atividade):
-    # busca a atividade pelo id que a função recebeu (id_atividade) ou retorna 404 se não existir
-    atividade = Atividade.query.get_or_404(id_atividade)
-    # apartir de 'atividade.id_viagem' busca o objeto viagem
-    viagem = Viagem.query.get_or_404(atividade.id_viagem)
-    # instancia o form
+def atividade_detalhe(id_viagem, id_atividade):
+    viajante_id = current_user.get_id()
+    
+    # 1. Busca os dados brutos no Firestore
+    viagem_data = buscar_viagem_por_id(viajante_id, id_viagem)
+    atividade_data = buscar_atividade_por_id(viajante_id, id_viagem, id_atividade)
+
+    if not viagem_data or not atividade_data:
+        abort(404)
+
+    # 2. Mapeia para os objetos das suas classes (Models)
+    viagem = Viagem(viagem_data)
+    atividade = Atividade(atividade_data)
+
     form = FormCriarAtividade()
-    # se for requisição GET, pré-preenche os campos do form com os valores atuais
+
+    # 3. Lógica do Formulário
     if request.method == 'GET':
         form.nome_atividade.data = atividade.nome_atividade
         form.valor_atividade.data = atividade.valor_atividade
-    # se não for GET e o form validou (POST com dados válidos)
+        
     elif form.validate_on_submit():
-        atividade.nome_atividade = form.nome_atividade.data
-        atividade.valor_atividade = form.valor_atividade.data
+        novos_dados = {
+            'nome_atividade': form.nome_atividade.data,
+            'valor_atividade': form.valor_atividade.data
+        }
+        
         try:
-            # chama método da viagem para recalcular/atualizar o valor restante
-            viagem.atualizar_valor_restante()
-            database.session.commit()
+            # 4. Atualiza a atividade
+            atualizar_atividade(viajante_id, id_viagem, id_atividade, novos_dados)
+            
+            # 5. Recalcula o valor restante da viagem pai
+            atualizar_valor_restante(viajante_id, id_viagem)
+            
             flash('Atividade editada com sucesso!', 'alert-success')
-            return redirect(url_for('viagem_detalhe', id_viagem=viagem.id))
-        except Exception:
-            database.session.rollback()
+            return redirect(url_for('viagem_detalhe', id_viagem=id_viagem))
+        except Exception as e:
+            app.logger.error(f"Erro ao editar atividade: {e}")
             flash('Erro ao editar atividade!', 'alert-danger')
-            return redirect(url_for('atividade_detalhe', id_atividade=id_atividade))
+            return redirect(url_for('atividade_detalhe', id_viagem=id_viagem, id_atividade=id_atividade))
+
     return render_template('atividade_detalhe.html', atividade=atividade, form=form, viagem=viagem)
 
 
 @app.route('/confirm/<token>')
 def confirm_email(token):
+    # Usa a sua função existente do utility.py
     email_ou_status = confirm_token(token)
 
     if email_ou_status == 'expired':
@@ -151,25 +276,32 @@ def confirm_email(token):
         flash('O link de confirmação é inválido.', 'alert-danger')
         return redirect(url_for('acesso'))
 
-    # Se a decodificação foi bem-sucedida, temos o e-mail
+    # Se chegou aqui, email_ou_status contém o e-mail decodificado
     email = email_ou_status
     
-    viajante = Viajante.query.filter_by(email=email).first()
+    # 1. Busca os dados do viajante no Firestore
+    viajante_data = buscar_viajante_por_email(email)
 
-    if viajante:
+    if viajante_data:
+        # Criamos o objeto Viajante a partir dos dados do Firestore 
+        # para que o Flask-Login (login_user) consiga usá-lo.
+        viajante = Viajante(viajante_data)
+
         if viajante.is_verified:
             flash('Sua conta já está ativada. Faça o login.', 'alert-success')
         else:
-            # 1. Atualizar o status
-            viajante.is_verified = True
-            database.session.commit()
+            # 2. Atualiza o status no Firestore usando o serviço
+            atualizar_status_verificacao(email, True)
             
+            # Atualizamos o atributo no objeto local para refletir a mudança imediata
+            viajante.is_verified = True
+            
+            # 3. Loga o usuário (O Flask-Login usa o objeto Viajante que criamos acima)
             login_user(viajante) 
 
             flash('Parabéns! Sua conta foi ativada com sucesso!', 'alert-success')
             return redirect(url_for('perfil'))
     else:
-        # Caso o e-mail no token não corresponda a nenhum usuário
         flash('Erro: Usuário não encontrado para este link de confirmação.', 'alert-danger')
         
     return redirect(url_for('acesso'))
@@ -180,49 +312,57 @@ def acesso():
     form_login = FormLogin()
     form_criarconta = FormCriarConta()
 
-    # Processar login com formulário tradicional
+    # --- 1. PROCESSAR LOGIN ---
     if form_login.validate_on_submit() and 'submit_login' in request.form:
-        viajante = Viajante.query.filter_by(email=form_login.email.data).first()
-        if viajante and bcrypt.check_password_hash(viajante.senha, form_login.senha.data):
+        # Busca os dados brutos no Firestore pelo email
+        viajante_data = buscar_viajante_por_email(form_login.email.data)
+        
+        if viajante_data:
+            # Transforma o dicionário em um objeto Viajante para o Flask-Login
+            viajante = Viajante(viajante_data)
+            
+            # Verifica a senha usando o hash armazenado no Firestore
+            if bcrypt.check_password_hash(viajante.senha, form_login.senha.data):
+                
+                # Checagem de verificação de e-mail
+                if not viajante.is_verified:
+                    flash('Sua conta ainda não foi ativada. Verifique seu e-mail para o link de confirmação.', 'alert-warning')
+                    return redirect(url_for('acesso'))
 
-            # NOVO: Checagem de verificação de e-mail
-            if not viajante.is_verified:
-                flash('Sua conta ainda não foi ativada. Verifique seu e-mail para o link de confirmação.', 'alert-warning')
-                return redirect(url_for('acesso'))
+                # Realiza o login (viajante agora é um objeto válido para o UserMixin)
+                login_user(viajante, remember=form_login.lembrar_dados.data)
+                flash(f'Login feito com sucesso!', 'alert-success')
+                
+                par_next = request.args.get('next')
+                return redirect(par_next) if par_next else redirect(url_for('perfil'))
+        
+        # Se não cair no if acima, o login falhou
+        flash(f'Falha no Login. E-mail ou Senha Incorretos', 'alert-danger')
 
-            login_user(viajante, remember=form_login.lembrar_dados.data)
-            flash(f'Login feito com sucesso no e-mail: {form_login.email.data}', 'alert-success')
-            par_next = request.args.get('next')
-            if par_next:
-                return redirect(par_next)
-            else:
-                return redirect(url_for('perfil'))
-        else:
-            flash(f'Falha no Login. E-mail ou Senha Incorretos', 'alert-danger')
-
-    # Processar criação de conta
+    # --- 2. PROCESSAR CRIAÇÃO DE CONTA ---
     if form_criarconta.validate_on_submit() and 'submit_criar_conta' in request.form:
-        senha_cript = bcrypt.generate_password_hash(form_criarconta.senha.data)
+        # Criptografa a senha (convertendo para string utf-8 para salvar no Firestore)
+        senha_cript = bcrypt.generate_password_hash(form_criarconta.senha.data).decode('utf-8')
 
-        viajante = Viajante(
-            nome=form_criarconta.nome.data, 
-            email=form_criarconta.email.data, 
-            senha=senha_cript,
-            is_verified=False # O usuário é criado como NÃO verificado
-            )
+        # Prepara o dicionário de dados
+        dados_viajante = {
+            'nome': form_criarconta.nome.data, 
+            'email': form_criarconta.email.data, 
+            'senha': senha_cript,
+            'is_verified': False # Começa desativado
+        }
 
-        database.session.add(viajante)
-        database.session.commit()
+        # Salva no Firestore usando o serviço (o email será o ID do documento)
+        criar_viajante(dados_viajante)
 
-        # Enviar o e-mail de confirmação
-        send_confirmation_email(viajante.email)
+        # Enviar o e-mail de confirmação usando sua função do utility.py
+        send_confirmation_email(dados_viajante['email'])
 
-        # Alerta o usuário para verificar o e-mail, NÃO faz login
-        flash(f"Conta criada com sucesso! Enviamos um link de ativação para {viajante.email}. Por favor, verifique sua caixa de entrada.", "alert-info")
-        return redirect(url_for('acesso')) # Redireciona para a mesma página de acesso/login
+        flash(f"Conta criada com sucesso! Enviamos um link de ativação para {dados_viajante['email']}.", "alert-info")
+        return redirect(url_for('acesso')) 
     
-    # Processar login com Google
-    if 'google_login' in request.args:  # Verifica se foi chamado o login do Google
+    # --- 3. LOGIN COM GOOGLE ---
+    if 'google_login' in request.args:
         redirect_uri = url_for('auth', _external=True)
         return google.authorize_redirect(redirect_uri)
 
@@ -233,48 +373,52 @@ def acesso():
 @app.route('/auth')
 def auth():
     try:
-        print("Tentando obter token...")
         token = google.authorize_access_token()
 
         if not token:
             flash('Falha ao obter o token do Google.', 'alert-danger')
-            print("Token não obtido.")
             return redirect(url_for('acesso'))
 
-        print("Tentando obter informações do usuário...")
         resp = google.get('userinfo')
         if resp.status_code != 200:
             flash('Falha ao obter informações do usuário do Google.', 'alert-danger')
-            print("Erro ao obter informações do usuário:", resp.status_code)
             return redirect(url_for('acesso'))
 
-        # obtem as informações do usuário
         user_info = resp.json()
+        email = user_info.get('email')
 
-        if 'email' not in user_info:
+        if not email:
             flash('Email não encontrado nas informações do usuário.', 'alert-danger')
-            print("Email não encontrado nas informações do usuário.")
             return redirect(url_for('acesso'))
 
-        # Verifica se o usuário já existe no banco de dados
-        viajante = Viajante.query.filter_by(email=user_info['email']).first()
-        if not viajante:
-            # Cria um novo visitante se não existir
-            viajante = Viajante(
-                nome=user_info.get('name'),
-                email=user_info['email'],
-                senha=None
-            )
-            database.session.add(viajante)
-            database.session.commit()
+        # 1. Busca se o viajante já existe no Firestore
+        viajante_data = buscar_viajante_por_email(email)
+        
+        if not viajante_data:
+            # 2. Se não existir, cria um novo no Firestore
+            # Usuários do Google já chegam como verificados (is_verified=True)
+            novo_viajante_dict = {
+                'nome': user_info.get('name'),
+                'email': email,
+                'senha': None, # Não há senha para login social
+                'is_verified': True 
+            }
+            criar_viajante(novo_viajante_dict)
+            
+            # Recarrega os dados para ter o dicionário completo (incluindo o doc_id)
+            viajante_data = buscar_viajante_por_email(email)
 
+        # 3. Transforma o dicionário em Objeto para o Flask-Login
+        viajante = Viajante(viajante_data)
+
+        # 4. Realiza o login
         login_user(viajante)
         flash('Login com Google realizado com sucesso!', 'alert-success')
         return redirect(url_for('perfil'))
 
     except Exception as e:
-        print(f'Ocorreu um erro: {str(e)}')  # Mostra o erro no console
-        flash(f'Ocorreu um erro: {str(e)}', 'alert-danger')
+        app.logger.error(f"Erro no OAuth Google: {str(e)}")
+        flash(f'Ocorreu um erro na autenticação: {str(e)}', 'alert-danger')
         return redirect(url_for('acesso'))
 
 
@@ -289,14 +433,19 @@ def sair():
 @app.route('/perfil')
 @login_required
 def perfil():
+    viajante_id = current_user.get_id()
 
-    # Conta quantas viagens o usuário tem
-    qtd_viagens = Viagem.query.filter_by(id_viajante=current_user.id).count()
+    # 1. Busca as viagens no Firestore (retorna lista de dicionários)
+    viagens_data = listar_viagens_por_viajante(viajante_id)
 
-    # Mostra todas as viagens do usuário
-    viagens_usuario = Viagem.query.filter_by(id_viajante=current_user.id).all()
+    # 2. Converte os dicionários em objetos Viagem (Models)
+    # Isso garante compatibilidade com a função calcular_percentual_e_cor
+    viagens_usuario = [Viagem(dados) for dados in viagens_data]
 
-    # Calcula o percentual e cor das barras usando a função auxiliar
+    # 3. Conta a quantidade de viagens
+    qtd_viagens = len(viagens_usuario)
+
+    # 4. Calcula o percentual e cor (a função utility permanece a mesma)
     viagens_com_percentual = calcular_percentual_e_cor(viagens_usuario)
 
     return render_template(
@@ -304,25 +453,32 @@ def perfil():
         qtd_viagens=qtd_viagens, 
         viagens_usuario=viagens_usuario,
         viagens_com_percentual=viagens_com_percentual
-        )
+    )
 
 
 @app.route('/viagem/criar', methods=['GET', 'POST'])
 @login_required
 def criar_viagem():
     form = FormCriarViagem()
+    
     if form.validate_on_submit(): 
-        nova_viagem = Viagem(
-            destino=form.destino.data,
-            valor_total=form.valor_total.data,
-            id_viajante=current_user.id
-            )
-        database.session.add(nova_viagem)
-        database.session.commit()
-        flash('Viagem criada com sucesso', 'alert-success')
+        viajante_id = current_user.get_id() # Obtém o email/ID do usuário logado
+        
+        # Preparamos o dicionário de dados
+        nova_viagem_dados = {
+            'destino': form.destino.data,
+            'valor_total': form.valor_total.data,
+            'valor_restante': form.valor_total.data, # Inicialmente sobra tudo
+            'id_viajante': viajante_id
+        }
+        
+        # Salvamos no Firestore
+        criar_nova_viagem(viajante_id, nova_viagem_dados)
+        
+        flash('Viagem criada com sucesso!', 'alert-success')
         return redirect(url_for('perfil'))
-    return render_template('criar_viagem.html', form=form,  modo='criar')
-
+        
+    return render_template('criar_viagem.html', form=form, modo='criar')
     
     
     

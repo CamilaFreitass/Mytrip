@@ -1,69 +1,70 @@
 {% extends 'base.html' %}
 
 {% block body %}
-   <!-- Page Content-->
-        <div class="container px-4 px-lg-5 mt-navbar">
-            <!-- Heading Row-->
-            <div class="row gx-4 gx-lg-5 align-items-center my-5">
-                <div class="col-lg-7">
-                    <img class="img-fluid rounded mb-4 mb-lg-0 img-menor" src="{{ url_for('static', filename='imagens/fundo.jpg') }}" alt="..." />
-                </div>
-                <div class="col-lg-5">
-                    <h1 class="font-weight-light">Bem-Vindo(a), {{ current_user.nome }}</h1>
-                    <p>Cada viagem é uma chance de respirar novos ares, viver novos momentos e criar memórias que ficam para sempre. Explore seus destinos, acompanhe seus planos e continue escrevendo sua própria jornada pelo mundo. </p>
-                    <div class="py-3">
-                        <form action="{{ url_for('criar_viagem') }}" method="get">
-                            <button type="submit" class="btn btn-outline-dark w-50">Inicia uma nova aventura 🌍</button>
-                        </form>
+<div class="container px-4 px-lg-5 mt-navbar">
+    <div class="row gx-4 gx-lg-5 align-items-center my-5">
+        <div class="col-lg-7">
+            <img class="img-fluid rounded mb-4 mb-lg-0 img-menor shadow" src="{{ url_for('static', filename='imagens/fundo.jpg') }}" alt="Imagem de fundo viagem" />
+        </div>
+        <div class="col-lg-5">
+            <h1 class="font-weight-light">Bem-Vindo(a), {{ current_user.nome }}</h1>
+            <p>Cada viagem é uma chance de respirar novos ares, viver novos momentos e criar memórias que ficam para sempre. Explore seus destinos, acompanhe seus planos e continue escrevendo sua própria jornada pelo mundo.</p>
+            <div class="py-3">
+                <a href="{{ url_for('criar_viagem') }}" class="btn btn-dark btn-lg w-100">Iniciar uma nova aventura 🌍</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="card text-white bg-secondary my-5 py-4 text-center shadow-sm">
+        <div class="card-body">
+            <p class="text-white m-0"><strong>Viajar é colecionar momentos, não coisas. Pronta para a próxima aventura? ✈️</strong></p>
+        </div>
+    </div>
+
+    {% if viagens_com_percentual %}
+    <div class="row gx-4 gx-lg-5">
+        {% for item in viagens_com_percentual %}
+        <div class="col-md-4 mb-5">
+            <a href="{{ url_for('viagem_detalhe', id_viagem=item.doc_id) }}" class="text-decoration-none text-dark">
+                <div class="card h-100 shadow-sm card-hover">
+                    <div class="card-body">
+                        <h2 class="card-title h4">{{ item.destino }}</h2>
+                        <h6 class="card-subtitle mb-2 text-muted small text-uppercase">Orçamento: R$ {{ "%.2f"|format(item.valor_total) }}</h6>
+                        <h6 class="card-subtitle mb-3 text-success">Restante: R$ {{ "%.2f"|format(item.valor_restante) }}</h6>
+                        
+                        <p class="mb-1 small">Percentual gasto:</p>
+                        {% if item.percentual_gasto > 0 %}
+                            <div class="progress" style="height: 25px; border-radius: 15px;">
+                                <div class="progress-bar {{ item.cor }} progress-bar-striped progress-bar-animated" 
+                                     role="progressbar" 
+                                     style="width: {{ item.percentual_gasto if item.percentual_gasto <= 100 else 100 }}%;"  
+                                     aria-valuenow="{{ item.percentual_gasto }}"
+                                     aria-valuemin="0" aria-valuemax="100">
+                                     {{ "%.1f"|format(item.percentual_gasto) }}%
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="progress" style="height: 25px; border-radius: 15px;">
+                                <div class="progress-bar bg-light text-dark border" role="progressbar" style="width: 100%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="card-footer bg-transparent border-top-0 pb-3 text-center">
+                        <span class="btn btn-sm btn-outline-primary">Ver detalhes</span>
                     </div>
                 </div>
-            </div>
-            <!-- Call to Action-->
-            <div class="card text-white bg-secondary my-5 py-4 text-center">
-                <div class="card-body"><p class="text-white m-0"><strong>Viajar é colecionar momentos, não coisas. Pronta para a próxima aventura?  ✈️</strong></p></div>
-            </div>
-            <!-- Content Row-->
-             {% if viagens_com_percentual %}
-            <div class="row gx-4 gx-lg-5">
-                {% for item in viagens_com_percentual %}
-                <div class="col-md-4 mb-5">
-                    <a href="{{ url_for('viagem_detalhe', id_viagem=item.viagem.id) }}" class="text-decoration-none text-dark">
-                        <div class="card h-100">
-                            <div class="card-body">
-                                <h2 class="card-title">{{ item.viagem.destino }}</h2>
-                                <h6 class="card-subtitle mb-2 text-muted">Orçamento R$ {{ item.viagem.valor_total }}</h6>
-                                <h6 class="card-subtitle mb-2 text-muted">Valor restante R$ {{ item.viagem.valor_restante }}</h6>
-                                <h7>Percentual gasto:</h7>
-                                {% if item.percentual_gasto > 0 %}
-                                    <div class="progress mt-2" style="height: 30px;">
-                                    <div class="progress-bar {{ item.cor }}" role="progressbar" 
-                                        style="width: {{ '%.1f'|format(item.percentual_gasto) }}%;"  
-                                        aria-valuenow="{{ '%.1f'|format(item.percentual_gasto) }}"
-                                        aria-valuemin="0" aria-valuemax="100">
-                                        {{ "%.1f"|format(item.percentual_gasto) }}%
-                                    </div>
-                                    </div>
-                                {% else %}
-                                    <div class="progress mt-2" style="height: 30px;">
-                                    <div class="progress-bar bg-light text-dark" role="progressbar" style="width: 100%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0 %</div>
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </a>
-                </div>
-                {% endfor %} 
-            </div>
-            {% else %}
-                <p class="text-center">Não há viagens cadastradas.</p>
-            {% endif %}
-
-            <div class="py-3 text-center">
-                <form action="{{ url_for('criar_viagem') }}" method="get">
-                    <button type="submit" class="btn btn-outline-dark w-50">Criar Viagem</button>
-                </form>
-            </div>
-            <br> 
+            </a>
         </div>
-    </body>
+        {% endfor %} 
+    </div>
+    {% else %}
+        <div class="alert alert-info text-center py-5">
+            <h4>Você ainda não tem viagens cadastradas.</h4>
+            <p>Que tal começar a planejar seu próximo destino agora?</p>
+            <a href="{{ url_for('criar_viagem') }}" class="btn btn-primary mt-3">Criar minha primeira viagem</a>
+        </div>
+    {% endif %}
+
+    <br> 
+</div>
 {% endblock %}

@@ -5,31 +5,47 @@ from itsdangerous import BadTimeSignature, SignatureExpired
 
 def calcular_percentual_e_cor(viagens):
     """
-    Recebe uma lista de objetos Viagem e retorna uma lista de dicionários:
-    { "viagem": Viagem, "percentual_gasto": float, "cor": str }
+    Recebe uma lista de viagens e injeta o percentual e a cor 
+    diretamente em cada item da lista.
     """
-    resultado = []
     for viagem in viagens:
-        # Usa valor_restante se existir, senão assume valor_total
-        valor_restante = viagem.valor_restante if viagem.valor_restante is not None else viagem.valor_total
-
-        if viagem.valor_total and valor_restante is not None:
-            percentual_gasto = ((viagem.valor_total - valor_restante) / viagem.valor_total) * 100
-            percentual_gasto = max(0, min(percentual_gasto, 100)) # garante entre 0 e 100
+        # 1. Extração Dinâmica
+        if isinstance(viagem, dict):
+            v_total = float(viagem.get('valor_total', 0))
+            v_restante = viagem.get('valor_restante')
         else:
-            percentual_gasto = 0
+            v_total = float(getattr(viagem, 'valor_total', 0))
+            v_restante = getattr(viagem, 'valor_restante', None)
 
-        # Define a cor da barra com base no percentual
-        if percentual_gasto <= 50:
-            cor = 'bg-success' # verde
-        elif percentual_gasto <= 80:
-            cor = 'bg-warning' # amarelo
+        if v_restante is None:
+            v_restante = v_total
         else:
-            cor = 'bg-danger'  # vermelho
+            v_restante = float(v_restante)
 
-        resultado.append({"viagem": viagem, "percentual_gasto": percentual_gasto, "cor": cor})
+        # 2. Cálculo do percentual
+        if v_total > 0:
+            gasto = v_total - v_restante
+            percentual = max(0, min((gasto / v_total) * 100, 100))
+        else:
+            percentual = 0
 
-    return resultado 
+        # 3. Definição da cor
+        if percentual <= 50:
+            cor = 'bg-success'
+        elif percentual <= 80:
+            cor = 'bg-warning'
+        else:
+            cor = 'bg-danger'
+
+        # 4. INJEÇÃO DIRETA (O segredo está aqui)
+        if isinstance(viagem, dict):
+            viagem['percentual_gasto'] = percentual
+            viagem['cor'] = cor
+        else:
+            setattr(viagem, 'percentual_gasto', percentual)
+            setattr(viagem, 'cor', cor)
+
+    return viagens # Retorna a mesma lista, mas com os objetos "turbinados"
 
 
 # recebe o email do novo usuário e usa a biblioteca itsdangerous para criptografar o email

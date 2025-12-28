@@ -1,61 +1,84 @@
-from trip import database, login_manager
 from flask_login import UserMixin
+from trip import login_manager 
+# Embora o login_manager seja configurado em __init__.py, ele precisa do user_loader
+# que usará as novas classes.
 
-
-class Viajante(database.Model, UserMixin):
-    __tablename__ = 'viajantes'
-
-    id = database.Column(database.Integer, primary_key=True)
-    nome = database.Column(database.String, nullable=False)
-    email = database.Column(database.String, nullable=False, unique=True)
-    senha = database.Column(database.String, nullable=True)
-    is_verified = database.Column(database.Boolean, default=False)
-    viagem = database.relationship('Viagem', backref='viajante', lazy=True, cascade="all, delete")
+class Viajante(UserMixin):
+    """
+    Classe simples para mapear dados de um Documento 'viajantes' do Firestore.
+    Herdar de UserMixin facilita a integração com Flask-Login.
+    """
+    
+    # ATENÇÃO: O 'id' relacional foi substituído pelo 'doc_id' do Firestore
+    def __init__(self, data):
+        self.doc_id = data.get('doc_id')         # ID do Documento no Firestore
+        self.nome = data.get('nome')
+        self.email = data.get('email')
+        self.senha = data.get('senha')           # Hash da senha
+        self.is_verified = data.get('is_verified', False)
+        # Não precisamos de 'viagem' aqui, pois relações são estruturadas de forma diferente no NoSQL
+    
+    # Método obrigatório para o Flask-Login
+    def get_id(self):
+        # Retornamos o ID do Documento do Firestore, que será usado no user_loader
+        return str(self.doc_id)
 
     def __repr__(self):
         return f"<Viajante {self.nome}>"
 
 
-class Viagem(database.Model):
-    __tablename__ = 'viagens'
+# No Firestore, as coleções filhas (Viagem e Atividade) geralmente
+# são armazenadas em Documentos separados ou subcoleções.
+# As classes abaixo servem para estruturar os dados.
 
-    id = database.Column(database.Integer, primary_key=True)
-    destino = database.Column(database.String, nullable=False)
-    valor_total = database.Column(database.Float, nullable=False)
-    valor_restante = database.Column(database.Float)
-    id_viajante = database.Column(database.Integer, database.ForeignKey('viajantes.id', name='fk_viagem_viajante'), nullable=False)
-    atividades = database.relationship('Atividade', backref=database.backref('viagem', passive_deletes=True), lazy=True, cascade="all, delete-orphan")
-
-    def __init__(self, destino, valor_total, id_viajante):
-        self.destino = destino
-        self.valor_total = valor_total
-        self.valor_restante = valor_total # inicia igual ao total
-        self.id_viajante = id_viajante
-
+class Viagem:
     
-    def atualizar_valor_restante(self):
-        # soma valor de todas as atividades
-        total_atividades = sum([atividade.valor_atividade for atividade in self.atividades])
-        self.valor_restante = self.valor_total - total_atividades
-
+    def __init__(self, data):
+        self.doc_id = data.get('doc_id')
+        self.destino = data.get('destino')
+        self.valor_total = data.get('valor_total')
+        self.valor_restante = data.get('valor_restante', self.valor_total)
+        self.id_viajante = data.get('id_viajante')
+        self.atividades = data.get('atividades', [])
+        
+    # No Firestore, 'atualizar_valor_restante' exigirá uma consulta a subcoleções
+    # e uma escrita (update) no documento pai (Viagem).
+    # O método deve ser implementado no firestore_service.py para acessar o DB.
+    
     def __repr__(self):
         return f"<Viagem para {self.destino}>"
 
 
-class Atividade(database.Model):
-    __tablename__ = 'atividades'
-
-    id = database.Column(database.Integer, primary_key=True)
-    nome_atividade = database.Column(database.String, nullable=False)
-    valor_atividade = database.Column(database.Float, nullable=False)
-    id_viagem = database.Column(database.Integer, database.ForeignKey('viagens.id', name='fk_atividade_viagem', ondelete="CASCADE"), nullable=False)
-
+class Atividade:
+    
+    def __init__(self, data):
+        self.doc_id = data.get('doc_id')
+        self.nome_atividade = data.get('nome_atividade')
+        self.valor_atividade = data.get('valor_atividade')
+        self.id_viagem = data.get('id_viagem')
+        
     def __repr__(self):
         return f"<Atividade {self.nome_atividade}>"
 
 
-# o 'login_manager' precisa de uma função que encontre o usuário pelo id dele (chave primária dele)
-# e para sinalizar para o 'login_manager' a função precisamos de um decorator 
+# -------------------------------------------------------------------------
+# O 'login_manager.user_loader' precisa ser reescrito para o Firestore
+# -------------------------------------------------------------------------
+
 @login_manager.user_loader
-def load_viajante(id_viajante):
-    return Viajante.query.get(int(id_viajante))
+def load_viajante(doc_id):
+    """
+    Função chamada pelo Flask-Login para recarregar o usuário a partir do ID 
+    (Doc ID do Firestore) armazenado na sessão.
+    """
+    # Importação local para evitar erro circular
+    from trip.firestore_service import buscar_viajante_por_doc_id
+
+    # Usamos a função de serviço para buscar o Documento pelo ID
+    viajante_data = buscar_viajante_por_doc_id(doc_id)
+    
+    if viajante_data:
+        # Retorna uma instância da nossa nova classe Viajante
+        return Viajante(viajante_data)
+        
+    return None

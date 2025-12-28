@@ -1,118 +1,119 @@
 {% extends 'base.html' %}
 
-
 {% block body %}
     <div class="container mt-5 pt-5">
         <div class="row">
-            <div class="col">
-                <form method="POST" action="" class="border p-4 mt-2">
+            <div class="col-md-6">
+                <form method="POST" action="" class="border p-4 mt-2 shadow-sm rounded">
                     {{ form_login.csrf_token }}
-                    <legend>Login</legend>
+                    <legend class="border-bottom mb-4">Login</legend>
                     <fieldset>
-                        <div class="form-group mt-2">
+                        <div class="form-group mb-3">
                             {{ form_login.email.label(class="form-control-label") }}
                             {% if form_login.email.errors %}
                                 {{ form_login.email(class="form-control is-invalid") }}
-                            <div class="invalid-feedback">
-                                {% for erro in form_login.email.errors %}
-                                    {{ erro }}
-                                {% endfor %}
-                            </div>
+                                <div class="invalid-feedback">
+                                    {% for erro in form_login.email.errors %}
+                                        <span>{{ erro }}</span>
+                                    {% endfor %}
+                                </div>
                             {% else %}
                                 {{ form_login.email(class="form-control") }}
                             {% endif %}
                         </div>
-                        <div class="form-group mt-2">
+                        <div class="form-group mb-3">
                             {{ form_login.senha.label(class="form-control-label") }}
                             {% if form_login.senha.errors %}
                                 {{ form_login.senha(class="form-control is-invalid") }}
-                            <div class="invalid-feedback">
-                                {% for erro in form_login.senha.errors %}
-                                    {{ erro }}
-                                {% endfor %}
-                            </div>
+                                <div class="invalid-feedback">
+                                    {% for erro in form_login.senha.errors %}
+                                        <span>{{ erro }}</span>
+                                    {% endfor %}
+                                </div>
                             {% else %}
                                 {{ form_login.senha(class="form-control") }}
                             {% endif %}
                         </div>
-                        <div class="form-group mt-2">
-                            {{ form_login.lembrar_dados.label(class="form-check-label") }}
+                        <div class="form-check mb-3">
                             {{ form_login.lembrar_dados(class="form-check-input") }}
+                            {{ form_login.lembrar_dados.label(class="form-check-label") }}
                         </div>
                     </fieldset>
-                    {{ form_login.submit_login(class="btn btn-secondary mt-2") }}
+                    {{ form_login.submit_login(class="btn btn-dark w-100") }}
                 </form>
             </div>
-            <div class="col">
-                <form method="POST" action="" class="border p-4 mt-2">
+
+            <div class="col-md-6">
+                <form method="POST" action="" class="border p-4 mt-2 shadow-sm rounded">
                     {{ form_criarconta.csrf_token }}
-                    <legend>Criar Conta</legend>
+                    <legend class="border-bottom mb-4">Criar Conta</legend>
                     <fieldset>
-                        <div class="form-group mt-2">
+                        <div class="form-group mb-3">
                             {{ form_criarconta.nome.label(class="form-control-label") }}
                             {% if form_criarconta.nome.errors %}
                                 {{ form_criarconta.nome(class="form-control is-invalid") }}
-                            <div class="invalid-feedback">
-                                {% for erro in form_criarconta.nome.errors %}
-                                    {{ erro }}
-                                {% endfor %}
-                            </div>
+                                <div class="invalid-feedback">
+                                    {% for erro in form_criarconta.nome.errors %}
+                                        <span>{{ erro }}</span>
+                                    {% endfor %}
+                                </div>
                             {% else %}
                                 {{ form_criarconta.nome(class="form-control") }}
                             {% endif %}
                         </div>
-                        <div class="form-group mt-2">
+                        <div class="form-group mb-3">
                             {{ form_criarconta.email.label(class="form-control-label") }}
                             {% if form_criarconta.email.errors %}
                                 {{ form_criarconta.email(class="form-control is-invalid") }}
-                            <div class="invalid-feedback">
-                                {% for erro in form_criarconta.email.errors %}
-                                    {{ erro }}
-                                {% endfor %}
-                            </div>
+                                <div class="invalid-feedback">
+                                    {% for erro in form_criarconta.email.errors %}
+                                        <span>{{ erro }}</span>
+                                    {% endfor %}
+                                </div>
                             {% else %}
                                 {{ form_criarconta.email(class="form-control") }}
                             {% endif %}
                         </div>
-                        <div class="form-group mt-2">
+                        <div class="form-group mb-3">
                             {{ form_criarconta.senha.label(class="form-control-label") }}
                             {% if form_criarconta.senha.errors %}
                                 {{ form_criarconta.senha(class="form-control is-invalid") }}
-                            <div class="invalid-feedback">
-                                {% for erro in form_criarconta.senha.errors %}
-                                    {{ erro }}
-                                {% endfor %}
-                            </div>
+                                <div class="invalid-feedback">
+                                    {% for erro in form_criarconta.senha.errors %}
+                                        <span>{{ erro }}</span>
+                                    {% endfor %}
+                                </div>
                             {% else %}
                                 {{ form_criarconta.senha(class="form-control") }}
                             {% endif %}
                         </div>
-                        <div class="form-group mt-2">
+                        <div class="form-group mb-3">
                             {{ form_criarconta.confirmacao.label(class="form-control-label") }}
                             {% if form_criarconta.confirmacao.errors %}
                                 {{ form_criarconta.confirmacao(class="form-control is-invalid") }}
-                            <div class="invalid-feedback">
-                                {% for erro in form_criarconta.confirmacao.errors %}
-                                    {{ erro }}
-                                {% endfor %}
-                            </div>
+                                <div class="invalid-feedback">
+                                    {% for erro in form_criarconta.confirmacao.errors %}
+                                        <span>{{ erro }}</span>
+                                    {% endfor %}
+                                </div>
                             {% else %}
                                 {{ form_criarconta.confirmacao(class="form-control") }}
                             {% endif %}
                         </div>
                     </fieldset>
-                    {{ form_criarconta.submit_criar_conta(class="btn btn-secondary mt-2") }}
+                    {{ form_criarconta.submit_criar_conta(class="btn btn-outline-dark w-100") }}
                 </form>
             </div>
         </div>
+
         <br>
+        <div class="text-center text-muted">ou</div>
         <hr>
-        <!-- Botão Login com Google -->
-        <div class="d-flex justify-content-center mt-3">
-            <a href="{{ url_for('acesso', google_login=true) }}" class="btn btn-light d-flex align-items-center shadow-sm"
-            style="border: 1px solid #ccc; border-radius: 4px; padding: 8px 12px; text-decoration: none;">
+
+        <div class="d-flex justify-content-center mt-3 mb-5">
+            <a href="{{ url_for('acesso', google_login=true) }}" class="btn btn-outline-secondary d-flex align-items-center shadow-sm"
+               style="border-radius: 4px; padding: 10px 20px; text-decoration: none;">
                 
-                <!-- Ícone do Google (SVG oficial) -->
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 48 48" style="margin-right:10px;">
                     <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.23 9.21 3.64l6.85-6.85C35.61 2.95 30.17 0.5 24 0.5 14.62 0.5 6.51 5.98 2.78 13.44l7.98 6.19C12.6 13.02 17.8 9.5 24 9.5z"/>
                     <path fill="#4285F4" d="M46.5 24.5c0-1.64-.15-3.23-.44-4.76H24v9.04h12.65c-.55 2.97-2.26 5.49-4.81 7.17l7.38 5.72C43.86 37.59 46.5 31.54 46.5 24.5z"/>

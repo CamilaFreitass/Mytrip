@@ -2,14 +2,14 @@
 
 {% block body %}
 <div class="container mt-5 pt-5">
-    <div class="card mx-auto" style="max-width: 600px;">
+    <div class="card mx-auto shadow-sm" style="max-width: 600px;">
         <div class="card-body">
             <div class="form-container">
 
                 <form method="POST"
                       action="
                         {% if modo == 'editar' %}
-                            {{ url_for('editar_viagem', id_viagem=viagem.id) }}
+                            {{ url_for('editar_viagem', id_viagem=viagem.doc_id) }}
                         {% else %}
                             {{ url_for('criar_viagem') }}
                         {% endif %}
@@ -31,39 +31,43 @@
                     <br>
 
                     <div class="form-group">
+                        {{ form.destino.label(class="form-label") }}
                         {{ form.destino(
-                            class="form-control",
-                            placeholder="Destino da viagem"
+                            class="form-control" + (" is-invalid" if form.destino.errors else ""),
+                            placeholder="Ex: Paris, França"
                         ) }}
+                        {% for error in form.destino.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
                     </div>
 
                     <br>
 
                     <div class="form-group">
+                        {{ form.valor_total.label(class="form-label") }}
                         {{ form.valor_total(
-                            class="form-control",
-                            placeholder="Valor total da viagem"
+                            class="form-control" + (" is-invalid" if form.valor_total.errors else ""),
+                            placeholder="0.00"
                         ) }}
+                        {% for error in form.valor_total.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
                     </div>
 
                     <br>
 
                     <div class="d-flex justify-content-center align-items-center gap-3 mt-4">
-
                         <a href="{{ url_for('perfil') }}" class="btn btn-secondary">Voltar</a>
 
                         {% if modo == 'editar' %}
-                            <button type="submit" class="btn btn-outline-dark">
-                                Atualizar
+                            <button type="submit" class="btn btn-primary">
+                                Atualizar Viagem
                             </button>
                         {% else %}
-                            {{ form.submit_viagem(class="btn btn-outline-secondary") }}
+                            {{ form.submit_viagem(class="btn btn-success") }}
                         {% endif %}
-
                     </div>
-
                 </form>
-
             </div>
         </div>
     </div>

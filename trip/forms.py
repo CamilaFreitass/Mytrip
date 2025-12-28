@@ -2,7 +2,7 @@ from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed
 from wtforms import StringField, PasswordField, SubmitField, BooleanField, FloatField
 from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationError, NumberRange
-from trip.models import Viajante
+from trip.firestore_service import buscar_viajante_por_email 
 from flask_login import current_user
 
 
@@ -13,12 +13,18 @@ class FormCriarConta(FlaskForm):
     confirmacao = PasswordField('Confirmação de Senha', validators=[DataRequired(), EqualTo('senha')])
     submit_criar_conta = SubmitField('Criar Conta')
     
-    # obrigatóriamente essa função tem que começar com nome 'validate_'
+    # Obrigatóriamente essa função tem que começar com nome 'validate_'
     def validate_email(self, email):
-        viajante = Viajante.query.filter_by(email=email.data).first()
-        if viajante:
-            raise ValidationError('E-mail já cadastrado. Cadastre-se com outro e-mail ou faça login para continuar')
         
+        # --- LÓGICA CORRIGIDA PARA FIREBASE FIRESTORE ---
+        
+        # Chama a função de serviço que consulta o Firestore pelo email
+        viajante_data = buscar_viajante_por_email(email.data)
+        
+        # Se viajante_data não for None (ou seja, se o documento existe), levanta o erro.
+        if viajante_data:
+            raise ValidationError('E-mail já cadastrado. Cadastre-se com outro e-mail ou faça login para continuar')
+        # ----------------------------------------------------
 
 
 class FormLogin(FlaskForm):

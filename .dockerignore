@@ -6,3 +6,8 @@ __pycache__/
 .gitignore
 .pytest_cache
 serviceAccountKey.json
+instance/
+.vscode/
+.idea/
+Dockerfile
+README.md

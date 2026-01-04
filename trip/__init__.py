@@ -8,6 +8,7 @@ from flask_mail import Mail
 from itsdangerous import URLSafeTimedSerializer
 from datetime import timedelta
 from firebase_admin import initialize_app, credentials, firestore, _apps
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # --- Carregar variáveis do .env ---
 # Caminho absoluto para o .env na raiz do projeto
@@ -16,6 +17,8 @@ load_dotenv(dotenv_path)
 
 
 app = Flask(__name__)
+
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 

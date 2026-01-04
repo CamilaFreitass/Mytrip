@@ -27,9 +27,12 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Authorize Docker
-        run: |
-          gcloud auth configure-docker gcr.io
+      - name: Docker Auth
+        uses: docker/login-action@v3
+        with:
+          registry: gcr.io
+          username: _json_key
+          password: ${{ secrets.GCP_SA_KEY }}
 
       - name: Build and Push Container
         run: |

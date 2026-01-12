@@ -7,6 +7,6 @@ com foco principal em controle de orçamento.
 
 ## Funcionalidades:
 
-- Cadastro de viagens
-- Adição de atividades
-- Controle de orçamento por viagem
+- Cadastro de viagens;
+- Adição de atividades;
+- Controle de orçamento por viagem;

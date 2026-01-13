@@ -24,7 +24,7 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 
 # --- INICIALIZAÇÃO DO FIREBASE FIREBASE ---
 
-FIREBASE_KEY_PATH = 'serviceAccountKey.json'
+FIREBASE_KEY_PATH = 'firebase-key.json'
 
 # NOVO: Verifica se o aplicativo Firebase padrão já foi inicializado
 # Se a lista de aplicativos inicializados estiver vazia, inicializamos.

@@ -9,7 +9,7 @@ instance/
 
 # Caches e temporários
 __pycache__/
-trip/__pycache__/
+backend/trip/__pycache__/
 
 # Arquivos de IDE
 .vscode/
@@ -20,7 +20,7 @@ trip/__pycache__/
 Thumbs.db
 
 # Uploads locais
-trip/static/fotos_perfil/
+frontend/static/fotos_perfil/
 
 .pytest_cache
 

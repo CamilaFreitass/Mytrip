@@ -1,0 +1,33 @@
+# Ambientes Virtuais
+.venv/
+venv/
+env/
+ENV/
+
+# Caches do Python
+**/__pycache__/
+**/*.py[cod]
+**/*$py.class
+
+# Logs e arquivos temporários
+*.log
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Arquivos do Sistema e IDEs
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Arquivos Sensíveis (CRÍTICO: não levar para a imagem)
+.env
+firebase-key.json
+serviceAccountKey.json
+
+# Docker e Git
+Dockerfile
+.dockerignore
+.git
+.github

@@ -23,12 +23,15 @@
                             <div class="d-flex gap-2">
                                 <a href="{{ url_for('atividade_detalhe', id_viagem=viagem.doc_id, id_atividade=atividade['doc_id']) }}" 
                                    class="btn btn-outline-dark btn-sm">Editar</a>
-                                
-                                <form action="{{ url_for('excluir_atividade', id_viagem=viagem.doc_id, id_atividade=atividade['doc_id']) }}" method="POST" style="display:inline;">
-                                    <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Excluir esta atividade?');">
-                                        Excluir
-                                    </button>
-                                </form>
+                                {% if viagem.doc_id and atividade['doc_id'] %}  <!-- Verificação para evitar URLs inválidas -->
+                                    <form action="{{ url_for('excluir_atividade', id_viagem=viagem.doc_id, id_atividade=atividade['doc_id']) }}" method="POST" style="display:inline;">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Excluir esta atividade?');">
+                                            Excluir
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <button class="btn btn-outline-danger btn-sm" disabled>Excluir (ID inválido)</button>
+                                {% endif %}
                             </div>
                         </li>
                     {% endfor %}

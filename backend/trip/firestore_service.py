@@ -1,6 +1,4 @@
-from trip import app 
-from firebase_admin import firestore
-from google.api_core.exceptions import NotFound
+from trip import app
 
 # -------------------------------------------------------------
 # 1. CONFIGURAÇÃO BASE

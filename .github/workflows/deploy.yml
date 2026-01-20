@@ -7,7 +7,6 @@ on:
 
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  SERVICE_NAME: ${{ secrets.SERVICE_NAME || 'mytrip' }}
   REPOSITORY: mytrip-repo
   REGION: us-central1
 
@@ -35,16 +34,32 @@ jobs:
           username: _json_key
           password: ${{ secrets.GCP_SA_KEY }}
 
-      - name: Build and Push Container
+      # --- BACKEND DEPLOY ---
+      - name: Build and Push Backend
         run: |
-          docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_NAME }}:${{ github.sha }} .
-          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+          docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/mytrip-backend:${{ github.sha }} ./backend
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/mytrip-backend:${{ github.sha }}
 
-      - name: Deploy to Cloud Run
+      - name: Deploy Backend to Cloud Run
         run: |
-          gcloud run deploy ${{ env.SERVICE_NAME }} \
-            --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
+          gcloud run deploy mytrip-backend \
+            --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/mytrip-backend:${{ github.sha }} \
             --region ${{ env.REGION }} \
             --platform managed \
             --allow-unauthenticated \
             --set-env-vars "SECRET_KEY=${{ secrets.SECRET_KEY }},GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }},GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }},MAIL_USERNAME=${{ secrets.MAIL_USERNAME }},MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }},MAIL_DEFAULT_SENDER=${{ secrets.MAIL_DEFAULT_SENDER }}"
+
+      # --- FRONTEND DEPLOY ---
+      - name: Build and Push Frontend
+        run: |
+          docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/mytrip-frontend:${{ github.sha }} ./frontend
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/mytrip-frontend:${{ github.sha }}
+
+      - name: Deploy Frontend to Cloud Run
+        run: |
+          gcloud run deploy mytrip-frontend \
+            --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/mytrip-frontend:${{ github.sha }} \
+            --region ${{ env.REGION }} \
+            --platform managed \
+            --allow-unauthenticated \
+            --set-env-vars "BACKEND_URL=${{ secrets.BACKEND_URL }}"

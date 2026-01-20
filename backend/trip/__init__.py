@@ -6,25 +6,37 @@ import os
 from authlib.integrations.flask_client import OAuth
 from flask_mail import Mail
 from itsdangerous import URLSafeTimedSerializer
-from datetime import timedelta
 from firebase_admin import initialize_app, credentials, firestore, _apps
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-# --- Carregar variáveis do .env ---
-# Caminho absoluto para o .env na raiz do projeto
-dotenv_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
-load_dotenv(dotenv_path)
+# 1. Ajuste preciso dos caminhos
+# Estamos em: Mytrip/backend/trip/__init__.py
+pasta_trip = os.path.dirname(__file__)
+pasta_backend = os.path.dirname(pasta_trip)
+raiz_projeto = os.path.dirname(pasta_backend)
 
-
-app = Flask(__name__)
+# Carrega o .env da raiz do projeto
+load_dotenv(os.path.join(raiz_projeto, '.env'))
+app = Flask(__name__,)
 
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 
+app.config.update(
+    SESSION_COOKIE_NAME='backend_session',
+    SESSION_COOKIE_SAMESITE='Lax',
+    SESSION_COOKIE_SECURE=False, # Permite HTTP
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_DOMAIN=None # Garante que funcione em 127.0.0.1
+)
+
+# Força o OAuthlib a aceitar conexões HTTP (sem SSL) para testes locais
+os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+
 # --- INICIALIZAÇÃO DO FIREBASE FIREBASE ---
 
-FIREBASE_KEY_PATH = 'firebase-key.json'
+FIREBASE_KEY_PATH = os.path.join(raiz_projeto, 'firebase-key.json')
 
 # NOVO: Verifica se o aplicativo Firebase padrão já foi inicializado
 # Se a lista de aplicativos inicializados estiver vazia, inicializamos.
@@ -86,8 +98,27 @@ google = oauth.register(
 mail = Mail(app)
 bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)
-login_manager.login_view = 'acesso'
-login_manager.login_message_category = 'alert-info'
+# login_manager.login_view = 'acesso'
+# login_manager.login_message_category = 'alert-info'
+
+@login_manager.user_loader
+def load_viajante(doc_id):
+    """
+    Função chamada pelo Flask-Login para recarregar o usuário a partir do ID
+    (Doc ID do Firestore) armazenado na sessão.
+    """
+    # Importação local para evitar erro circular
+    from trip.models import Viajante
+    from trip.firestore_service import buscar_viajante_por_doc_id
+
+    # Usamos a função de serviço para buscar o Documento pelo ID
+    viajante_data = buscar_viajante_por_doc_id(doc_id)
+
+    if viajante_data:
+        # Retorna uma instância da nossa nova classe Viajante
+        return Viajante(viajante_data)
+
+    return None
 
 # essa importação tem que vir aqui embaixo, pq primeiro eu preciso criar o app para depois importar os routes
 from trip import routes

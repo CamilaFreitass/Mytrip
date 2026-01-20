@@ -1,5 +1,5 @@
 from flask_login import UserMixin
-from trip import login_manager 
+
 # Embora o login_manager seja configurado em __init__.py, ele precisa do user_loader
 # que usará as novas classes.
 
@@ -65,20 +65,3 @@ class Atividade:
 # O 'login_manager.user_loader' precisa ser reescrito para o Firestore
 # -------------------------------------------------------------------------
 
-@login_manager.user_loader
-def load_viajante(doc_id):
-    """
-    Função chamada pelo Flask-Login para recarregar o usuário a partir do ID 
-    (Doc ID do Firestore) armazenado na sessão.
-    """
-    # Importação local para evitar erro circular
-    from trip.firestore_service import buscar_viajante_por_doc_id
-
-    # Usamos a função de serviço para buscar o Documento pelo ID
-    viajante_data = buscar_viajante_por_doc_id(doc_id)
-    
-    if viajante_data:
-        # Retorna uma instância da nossa nova classe Viajante
-        return Viajante(viajante_data)
-        
-    return None

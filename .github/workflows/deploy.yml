@@ -47,7 +47,7 @@ jobs:
             --region ${{ env.REGION }} \
             --platform managed \
             --allow-unauthenticated \
-            --set-env-vars "SECRET_KEY=${{ secrets.SECRET_KEY }},GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }},GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }},MAIL_USERNAME=${{ secrets.MAIL_USERNAME }},MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }},MAIL_DEFAULT_SENDER=${{ secrets.MAIL_DEFAULT_SENDER }}"
+            --set-env-vars "SECRET_KEY=${{ secrets.SECRET_KEY }},GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }},GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }},MAIL_USERNAME=${{ secrets.MAIL_USERNAME }},MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }},MAIL_DEFAULT_SENDER=${{ secrets.MAIL_DEFAULT_SENDER }},FRONTEND_URL=${{ secrets.FRONTEND_URL }}"
 
       # --- FRONTEND DEPLOY ---
       - name: Build and Push Frontend
@@ -62,4 +62,4 @@ jobs:
             --region ${{ env.REGION }} \
             --platform managed \
             --allow-unauthenticated \
-            --set-env-vars "BACKEND_URL=${{ secrets.BACKEND_URL }}"
+            --set-env-vars "BACKEND_URL=${{ secrets.BACKEND_URL }},SECRET_KEY=${{ secrets.SECRET_KEY }}"

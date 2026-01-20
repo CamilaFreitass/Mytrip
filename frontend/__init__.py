@@ -25,7 +25,7 @@ login_manager.login_message_category = 'alert-info'
 
 @login_manager.user_loader
 def load_user(user_id):
-    from .models import Viajante
+    from models import Viajante
     BACKEND_URL = os.getenv('BACKEND_URL', 'http://127.0.0.1:5000')
     response = requests.get(f"{BACKEND_URL}/api/usuario/{user_id}")
     if response.status_code == 200:
@@ -34,4 +34,4 @@ def load_user(user_id):
     return None
 
 # Importa as rotas (deve vir após a criação do app)
-from . import routes_front
+import routes_front

@@ -1,9 +1,9 @@
 import requests
 from flask import render_template, redirect, url_for, flash, request
 from flask_login import login_required, login_user, logout_user, current_user
-from . import app
-from .forms import FormCriarAtividade, FormCriarViagem, FormLogin, FormCriarConta
-from .models import Viagem, Atividade, Viajante
+from __init__ import app
+from forms import FormCriarAtividade, FormCriarViagem, FormLogin, FormCriarConta
+from models import Viagem, Atividade, Viajante
 import os
 
 

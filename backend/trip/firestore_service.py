@@ -1,4 +1,6 @@
 from trip import app
+from datetime import datetime, timezone
+
 
 # -------------------------------------------------------------
 # 1. CONFIGURAÇÃO BASE
@@ -145,7 +147,6 @@ def atualizar_valor_restante(viajante_id, viagem_id):
     viagem_doc = viagem_ref.get()
     
     if not viagem_doc.exists:
-        # Importante: certifique-se de que 'NotFound' está importado ou use Exception
         print(f"ERRO: Viagem {viagem_id} não encontrada para o usuário {viajante_id}")
         return None
     
@@ -254,3 +255,232 @@ def criar_nova_viagem(viajante_id, dados_viagem):
     
     # 4. Retorna o ID gerado
     return novo_doc_ref.id
+
+
+# --- CONVITES (NOVO) ---
+
+def _agora_utc():
+    return datetime.now(timezone.utc)
+
+def get_convites_ref(viajante_id):
+    return VIAJANTES_REF.document(viajante_id).collection('convites_viagem')
+
+
+def criar_convite_viagem(owner_id, viagem_id, guest_id, destino_snapshot=None, owner_nome_snapshot=None):
+    """
+    Cria um convite (Auto-ID) na subcoleção do convidado:
+    viajantes/{guest_id}/convites_viagem/{convite_id}
+
+    (Opcional) cria/atualiza espelho em:
+    viajantes/{owner_id}/viagens/{viagem_id}/convites/{guest_id}
+    """
+    # 1) valida existência do convidado
+    guest_doc = VIAJANTES_REF.document(guest_id).get()
+    if not guest_doc.exists:
+        return None, "convidado_nao_encontrado"
+
+    # 2) valida existência da viagem do dono
+    viagem_doc = get_viagem_ref(owner_id, viagem_id).get()
+    if not viagem_doc.exists:
+        return None, "viagem_nao_encontrada"
+
+    now = _agora_utc()
+
+    convite_data = {
+        "owner_id": owner_id,
+        "viagem_id": viagem_id,
+        "status": "pendente",
+        "created_at": now,
+        "updated_at": now,
+    }
+
+    if destino_snapshot is not None:
+        convite_data["destino_snapshot"] = destino_snapshot
+    if owner_nome_snapshot is not None:
+        convite_data["owner_nome_snapshot"] = owner_nome_snapshot
+
+    # 3) cria convite com Auto-ID
+    convite_ref = get_convites_ref(guest_id).document()
+    convite_ref.set(convite_data)
+
+    # 4) espelho (recomendado)
+    try:
+        espelho_ref = get_viagem_ref(owner_id, viagem_id).collection("convites").document(guest_id)
+        espelho_ref.set({
+            "guest_id": guest_id,
+            "status": "pendente",
+            "created_at": now,
+            "updated_at": now,
+        })
+    except Exception:
+        # Se não quiser falhar por causa do espelho, apenas ignora
+        pass
+
+    return convite_ref.id, None
+
+
+def listar_convites_do_viajante(viajante_id, status=None):
+    """
+    Lista convites do usuário (convidado).
+    """
+    ref = get_convites_ref(viajante_id)
+    query = ref
+    if status:
+        query = ref.where("status", "==", status)
+
+    docs = query.stream()
+    convites = []
+    for doc in docs:
+        data = doc.to_dict() or {}
+        data["doc_id"] = doc.id
+        convites.append(data)
+    return convites
+
+
+def responder_convite(viajante_id, convite_id, acao):
+    """
+    Convidado aceita/recusa um convite.
+    acao: "aceitar" | "recusar"
+    """
+    if acao not in ("aceitar", "recusar"):
+        return False, "acao_invalida"
+
+    convite_ref = get_convites_ref(viajante_id).document(convite_id)
+    convite_doc = convite_ref.get()
+    if not convite_doc.exists:
+        return False, "convite_nao_encontrado"
+
+    convite = convite_doc.to_dict() or {}
+    owner_id = convite.get("owner_id")
+    viagem_id = convite.get("viagem_id")
+
+    novo_status = "aceito" if acao == "aceitar" else "recusado"
+    now = _agora_utc()
+
+    convite_ref.update({
+        "status": novo_status,
+        "updated_at": now,
+    })
+
+    # Atualiza espelho (se existir)
+    if owner_id and viagem_id:
+        try:
+            espelho_ref = get_viagem_ref(owner_id, viagem_id).collection("convites").document(viajante_id)
+            if espelho_ref.get().exists:
+                espelho_ref.update({
+                    "status": novo_status,
+                    "updated_at": now,
+                })
+        except Exception:
+            pass
+
+    return True, None
+
+
+def revogar_convite(owner_id, viagem_id, guest_id):
+    """
+    Dono revoga acesso do convidado para uma viagem.
+    Como o convite do convidado tem Auto-ID, localizamos por query (owner_id + viagem_id).
+    Marca como 'revogado' no lado do convidado e no espelho do dono.
+    """
+    now = _agora_utc()
+
+    # 1) atualiza espelho do dono (se existir)
+    try:
+        espelho_ref = get_viagem_ref(owner_id, viagem_id).collection("convites").document(guest_id)
+        if espelho_ref.get().exists:
+            espelho_ref.update({
+                "status": "revogado",
+                "updated_at": now,
+            })
+    except Exception:
+        pass
+
+    # 2) atualiza convite(s) no lado do convidado (pode existir mais de 1 por segurança)
+    convites_query = (
+        get_convites_ref(guest_id)
+        .where("owner_id", "==", owner_id)
+        .where("viagem_id", "==", viagem_id)
+    )
+
+    atualizou = False
+    for doc in convites_query.stream():
+        doc.reference.update({
+            "status": "revogado",
+            "updated_at": now,
+        })
+        atualizou = True
+
+    return atualizou
+
+
+def tem_acesso_a_viagem(viajante_id, owner_id, viagem_id):
+    """
+    True se:
+      - viajante é o dono (owner), ou
+      - existe convite aceito no convidado apontando para (owner_id, viagem_id)
+    """
+    if viajante_id == owner_id:
+        return True
+
+    query = (
+        get_convites_ref(viajante_id)
+        .where("owner_id", "==", owner_id)
+        .where("viagem_id", "==", viagem_id)
+        .where("status", "==", "aceito")
+    )
+
+    for _ in query.stream():
+        return True
+    return False
+
+
+def listar_viagens_compartilhadas_para_viajante(viajante_id):
+    """
+    Retorna uma lista de viagens (dict) que o viajante acessa como convidado (convite aceito).
+    Cada item inclui os metadados necessários para o frontend diferenciar e navegar:
+      - owner_id
+      - papel = "convidado"
+    """
+    query = (
+        get_convites_ref(viajante_id)
+        .where("status", "==", "aceito")
+    )
+
+    viagens = []
+    for convite_doc in query.stream():
+        convite = convite_doc.to_dict() or {}
+        owner_id = convite.get("owner_id")
+        viagem_id = convite.get("viagem_id")
+
+        if not owner_id or not viagem_id:
+            continue
+
+        viagem_data = buscar_viagem_por_id(owner_id, viagem_id)
+        if not viagem_data:
+            # A viagem pode ter sido deletada pelo dono; ignoramos por enquanto
+            continue
+
+        # Metadados para o frontend
+        viagem_data["owner_id"] = owner_id
+        viagem_data["papel"] = "convidado"
+        viagens.append(viagem_data)
+
+    return viagens
+
+
+def listar_convites_da_viagem(owner_id, viagem_id):
+    """
+    Lista convites (espelho) dentro da viagem do dono:
+      viajantes/{owner_id}/viagens/{viagem_id}/convites/{guest_id}
+    """
+    convites_ref = get_viagem_ref(owner_id, viagem_id).collection("convites")
+    docs = convites_ref.stream()
+
+    convites = []
+    for doc in docs:
+        data = doc.to_dict() or {}
+        data["doc_id"] = doc.id  # aqui deve ser o guest_id (email) se você usou assim
+        convites.append(data)
+
+    return convites

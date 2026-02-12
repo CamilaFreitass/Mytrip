@@ -4,13 +4,21 @@
 <div class="container mt-5 pt-5">
     <div class="card mx-auto shadow" style="max-width: 700px;">
         <div class="card-body">
-            <h2 class="card-title text-center mb-4"><strong>{{ viagem.destino }}</strong></h2>
-            
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <h2 class="card-title text-center mb-0 w-100"><strong>{{ viagem.destino }}</strong></h2>
+            </div>
+
+            {% if compartilhada %}
+                <div class="text-center mb-3">
+                    <span class="badge bg-info text-dark">Viagem compartilhada</span>
+                </div>
+            {% endif %}
+
             <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
                 <h5 class="mb-0">Atividades Planejadas</h5>
                 <span class="badge bg-dark">{{ viagem.atividades|length }} itens</span>
             </div>
-            
+
             {% if viagem.atividades %}
                 <ul class="list-group list-group-flush mb-4">
                     {% for atividade in viagem['atividades'] %}
@@ -21,16 +29,30 @@
                                 <small class="text-muted">R$ {{ "%.2f"|format(atividade['valor_atividade']|float) }}</small>
                             </div>
                             <div class="d-flex gap-2">
-                                <a href="{{ url_for('atividade_detalhe', id_viagem=viagem.doc_id, id_atividade=atividade['doc_id']) }}" 
-                                   class="btn btn-outline-dark btn-sm">Editar</a>
-                                {% if viagem.doc_id and atividade['doc_id'] %}  <!-- Verificação para evitar URLs inválidas -->
-                                    <form action="{{ url_for('excluir_atividade', id_viagem=viagem.doc_id, id_atividade=atividade['doc_id']) }}" method="POST" style="display:inline;">
-                                        <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Excluir esta atividade?');">
-                                            Excluir
-                                        </button>
-                                    </form>
+                                {% if compartilhada %}
+                                    <a href="{{ url_for('atividade_detalhe_compartilhada', owner_id=owner_id, id_viagem=viagem.doc_id, id_atividade=atividade['doc_id']) }}"
+                                       class="btn btn-outline-dark btn-sm">Editar</a>
+                                    {% if viagem.doc_id and atividade['doc_id'] %}
+                                        <form action="{{ url_for('excluir_atividade_compartilhada', owner_id=owner_id, id_viagem=viagem.doc_id, id_atividade=atividade['doc_id']) }}" method="POST" style="display:inline;">
+                                            <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Excluir esta atividade?');">
+                                                Excluir
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <button class="btn btn-outline-danger btn-sm" disabled>Excluir (ID inválido)</button>
+                                    {% endif %}
                                 {% else %}
-                                    <button class="btn btn-outline-danger btn-sm" disabled>Excluir (ID inválido)</button>
+                                    <a href="{{ url_for('atividade_detalhe', id_viagem=viagem.doc_id, id_atividade=atividade['doc_id']) }}"
+                                       class="btn btn-outline-dark btn-sm">Editar</a>
+                                    {% if viagem.doc_id and atividade['doc_id'] %}
+                                        <form action="{{ url_for('excluir_atividade', id_viagem=viagem.doc_id, id_atividade=atividade['doc_id']) }}" method="POST" style="display:inline;">
+                                            <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Excluir esta atividade?');">
+                                                Excluir
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <button class="btn btn-outline-danger btn-sm" disabled>Excluir (ID inválido)</button>
+                                    {% endif %}
                                 {% endif %}
                             </div>
                         </li>
@@ -53,22 +75,6 @@
                         </tr>
                     </tbody>
                 </table>
-
-                {% if viagens_com_percentual %}
-                    {% for item in viagens_com_percentual if item.viagem.doc_id == viagem.doc_id %}
-                        <div class="mt-3">
-                            <small class="text-muted">Percentual do orçamento utilizado:</small>
-                            <div class="progress mt-1" style="height: 25px; border-radius: 12px;">
-                                <div class="progress-bar {{ item.cor }} progress-bar-striped" role="progressbar"
-                                    style="width: {{ item.percentual_gasto if item.percentual_gasto <= 100 else 100 }}%;"
-                                    aria-valuenow="{{ item.percentual_gasto }}"
-                                    aria-valuemin="0" aria-valuemax="100">
-                                    <strong>{{ "%.1f"|format(item.percentual_gasto) }}%</strong>
-                                </div>
-                            </div>
-                        </div>
-                    {% endfor %}
-                {% endif %}
             </div>
 
             <div class="d-flex justify-content-center gap-3">
@@ -76,22 +82,33 @@
                 <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalAtividade">
                     + Nova Atividade
                 </button>
+
+                {% if not compartilhada %}
+                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalConvite">
+                        Convidar / Gerenciar
+                    </button>
+                {% endif %}
             </div>
         </div>
 
         <div class="card-footer bg-white d-flex justify-content-center gap-3 py-3">
-            <a href="{{ url_for('editar_viagem', id_viagem=viagem.doc_id) }}" class="btn btn-link btn-sm text-dark">
-                Editar Destino/Orçamento
-            </a>
-            <form action="{{ url_for('deletar_viagem', viagem_id=viagem.doc_id) }}" method="POST">
-                <button type="submit" class="btn btn-link btn-sm text-danger" onclick="return confirm('ATENÇÃO: Isso apagará a viagem e todas as atividades. Confirmar?');">
-                    Excluir Viagem
-                </button>
-            </form>
+            {% if not compartilhada %}
+                <a href="{{ url_for('editar_viagem', id_viagem=viagem.doc_id) }}" class="btn btn-link btn-sm text-dark">
+                    Editar Destino/Orçamento
+                </a>
+                <form action="{{ url_for('deletar_viagem', viagem_id=viagem.doc_id) }}" method="POST">
+                    <button type="submit" class="btn btn-link btn-sm text-danger" onclick="return confirm('ATENÇÃO: Isso apagará a viagem e todas as atividades. Confirmar?');">
+                        Excluir Viagem
+                    </button>
+                </form>
+            {% else %}
+                <span class="text-muted small">Você é convidado nesta viagem (não pode editar/excluir a viagem).</span>
+            {% endif %}
         </div>
     </div>
 </div>
 
+<!-- Modal Nova Atividade -->
 <div class="modal fade" id="modalAtividade" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -121,4 +138,61 @@
     </div>
   </div>
 </div>
+
+<!-- Modal Convidar / Gerenciar (somente dono) -->
+{% if not compartilhada %}
+<div class="modal fade" id="modalConvite" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title w-100 text-center">Convidar / Gerenciar convidados</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+
+        <!-- Enviar convite -->
+        <form method="POST" action="{{ url_for('convidar_viajante', id_viagem=viagem.doc_id) }}">
+          <div class="mb-3">
+            <label for="email_convidado" class="form-label">E-mail do viajante</label>
+            <input type="email" class="form-control" id="email_convidado" name="email_convidado" placeholder="ex: convidado@exemplo.com" required>
+            <div class="form-text">O convite aparecerá no app do viajante (in-app).</div>
+          </div>
+
+          <div class="d-grid">
+            <button type="submit" class="btn btn-primary">Enviar convite</button>
+          </div>
+        </form>
+
+        <hr class="my-4">
+
+        <!-- Listar + revogar -->
+        <h6 class="mb-3">Convidados desta viagem</h6>
+
+        {% if convites_viagem %}
+          <div class="list-group">
+            {% for c in convites_viagem %}
+              {% set guest_id = c.guest_id or c.doc_id %}
+              <div class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                  <div class="fw-bold">{{ guest_id }}</div>
+                  <div class="text-muted small">Status: {{ c.status }}</div>
+                </div>
+
+                <form method="POST"
+                      action="{{ url_for('revogar_convite_front', id_viagem=viagem.doc_id, guest_id=guest_id) }}"
+                      onsubmit="return confirm('Revogar o acesso deste viajante?');">
+                  <button type="submit" class="btn btn-outline-danger btn-sm">Revogar</button>
+                </form>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-muted small">Nenhum convidado ainda.</div>
+        {% endif %}
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
 {% endblock %}

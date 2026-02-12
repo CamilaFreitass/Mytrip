@@ -9,9 +9,13 @@
                     <h2>{{ atividade.nome_atividade }}</h2>
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="{{ url_for('atividade_detalhe', id_viagem=viagem.doc_id, id_atividade=atividade.doc_id) }}" enctype="multipart/form-data">
+                    {% if compartilhada %}
+                        <form method="POST" action="{{ url_for('atividade_detalhe_compartilhada', owner_id=owner_id, id_viagem=viagem.doc_id, id_atividade=atividade.doc_id) }}" enctype="multipart/form-data">
+                    {% else %}
+                        <form method="POST" action="{{ url_for('atividade_detalhe', id_viagem=viagem.doc_id, id_atividade=atividade.doc_id) }}" enctype="multipart/form-data">
+                    {% endif %}
                         {{ form.hidden_tag() }}
-                        
+
                         <div class="mb-3">
                             {{ form.nome_atividade.label(class="form-label") }}
                             {{ form.nome_atividade(class="form-control" + (" is-invalid" if form.nome_atividade.errors else "")) }}
@@ -19,7 +23,7 @@
                                 <div class="invalid-feedback">{{ error }}</div>
                             {% endfor %}
                         </div>
-                        
+
                         <div class="mb-3">
                             {{ form.valor_atividade.label(class="form-label") }}
                             {{ form.valor_atividade(class="form-control" + (" is-invalid" if form.valor_atividade.errors else "")) }}
@@ -27,10 +31,14 @@
                                 <div class="invalid-feedback">{{ error }}</div>
                             {% endfor %}
                         </div>
-                        
+
                         <div class="mt-4">
                             {{ form.submit_atividade(class="btn btn-primary") }}
-                            <a href="{{ url_for('viagem_detalhe', id_viagem=viagem.doc_id) }}" class="btn btn-secondary">Cancelar</a>
+                            {% if compartilhada %}
+                                <a href="{{ url_for('viagem_detalhe_compartilhada', owner_id=owner_id, id_viagem=viagem.doc_id) }}" class="btn btn-secondary">Cancelar</a>
+                            {% else %}
+                                <a href="{{ url_for('viagem_detalhe', id_viagem=viagem.doc_id) }}" class="btn btn-secondary">Cancelar</a>
+                            {% endif %}
                         </div>
                     </form>
                 </div>

@@ -4,9 +4,8 @@ from trip.models import Viajante, Viagem, Atividade
 from flask_login import login_user, logout_user, current_user, login_required
 from trip.utility import calcular_percentual_e_cor, confirm_token, send_confirmation_email
 import os
-from .firestore_service import (
-    atualizar_valor_restante,
-    criar_atividade, 
+from .firestore_service import ( atualizar_valor_restante,
+    criar_atividade,
     buscar_viagem_por_id,
     deletar_atividade,
     atualizar_viagem,
@@ -17,7 +16,15 @@ from .firestore_service import (
     atualizar_status_verificacao,
     criar_viajante,
     criar_nova_viagem,
-    listar_viagens_por_viajante)
+    listar_viagens_por_viajante,
+    criar_convite_viagem,
+    listar_convites_do_viajante,
+    responder_convite,
+    revogar_convite,
+    tem_acesso_a_viagem,
+    listar_viagens_compartilhadas_para_viajante,
+    listar_convites_da_viagem,
+)
 
 
 @app.route('/api/viagem/<string:id_viagem>', methods=["GET"])
@@ -299,6 +306,7 @@ def api_get_usuario_por_email(email):
         return jsonify(viajante_data), 200
     return jsonify({"erro": "Usuário não encontrado"}), 404
 
+
 @app.route('/api/sair')
 @login_required
 def api_sair():
@@ -312,24 +320,33 @@ def api_perfil():
     if not viajante_id:
         return jsonify({"erro": "Autenticação necessária (header X-Viajante-ID ausente)"}), 401
 
-    # 1. Busca as viagens no Firestore
-    viagens_data = listar_viagens_por_viajante(viajante_id)
+    # 1) Viagens próprias (dono)
+    viagens_proprias_data = listar_viagens_por_viajante(viajante_id)
+    for v in viagens_proprias_data:
+        v["papel"] = "dono"
+        v["owner_id"] = viajante_id
 
-    # 2. Converte para objetos e calcula percentual/cor
-    viagens_usuario = [Viagem(dados) for dados in viagens_data]
-    viagens_com_calculos = calcular_percentual_e_cor(viagens_usuario)
+    # 2) Viagens compartilhadas (convidado)
+    viagens_compartilhadas_data = listar_viagens_compartilhadas_para_viajante(viajante_id)
 
-    # 3. Prepara a resposta JSON
-    # Transformamos os objetos de volta em dicionários para o JSON
+    # 3) Calcula percentual/cor para todas
+    viagens_todas_data = viagens_proprias_data + viagens_compartilhadas_data
+    viagens_objs = [Viagem(dados) for dados in viagens_todas_data]
+    viagens_com_calculos = calcular_percentual_e_cor(viagens_objs)
+
+    # 4) Serializa para JSON mantendo papel/owner_id
     lista_final = []
-    for v in viagens_com_calculos:
+    for idx, v in enumerate(viagens_com_calculos):
+        original = viagens_todas_data[idx]
         lista_final.append({
             "doc_id": v.doc_id,
             "destino": v.destino,
             "valor_total": v.valor_total,
             "valor_restante": v.valor_restante,
             "percentual_gasto": v.percentual_gasto,
-            "cor": v.cor
+            "cor": v.cor,
+            "papel": original.get("papel"),
+            "owner_id": original.get("owner_id"),
         })
 
     return jsonify({
@@ -359,5 +376,241 @@ def api_criar_viagem():
 
     return jsonify({"mensagem": "Viagem criada com sucesso!", "id": doc_id}), 201
     
-    
-    
+
+@app.route('/api/viagem/<string:viagem_id>/convites', methods=["POST"])
+def api_criar_convite(viagem_id):
+    owner_id = request.headers.get('X-Viajante-ID')
+    if not owner_id:
+        return jsonify({"erro": "Autenticação necessária (header X-Viajante-ID ausente)"}), 401
+
+    dados = request.json or {}
+    guest_email = dados.get("email_convidado")
+    if not guest_email:
+        return jsonify({"erro": "Campo obrigatório: email_convidado"}), 400
+
+    # Valida e pega snapshot opcional (ajuda o frontend depois, mas não é UI agora)
+    viagem_data = buscar_viagem_por_id(owner_id, viagem_id)
+    if not viagem_data:
+        return jsonify({"erro": "Viagem não encontrada"}), 404
+
+    convite_id, erro = criar_convite_viagem(
+        owner_id=owner_id,
+        viagem_id=viagem_id,
+        guest_id=guest_email,
+        destino_snapshot=viagem_data.get("destino"),
+        owner_nome_snapshot=None
+    )
+
+    if erro == "convidado_nao_encontrado":
+        return jsonify({"erro": "Convidado não encontrado"}), 404
+    if erro == "viagem_nao_encontrada":
+        return jsonify({"erro": "Viagem não encontrada"}), 404
+    if not convite_id:
+        return jsonify({"erro": "Erro ao criar convite"}), 500
+
+    return jsonify({"mensagem": "Convite criado", "convite_id": convite_id}), 201
+
+
+@app.route('/api/convites', methods=["GET"])
+def api_listar_convites():
+    viajante_id = request.headers.get('X-Viajante-ID')
+    if not viajante_id:
+        return jsonify({"erro": "Autenticação necessária (header X-Viajante-ID ausente)"}), 401
+
+    status = request.args.get("status")  # ex: ?status=pendente
+    convites = listar_convites_do_viajante(viajante_id, status=status)
+
+    return jsonify({
+        "qtd": len(convites),
+        "convites": convites
+    }), 200
+
+
+@app.route('/api/convites/<string:convite_id>', methods=["PUT"])
+def api_responder_convite(convite_id):
+    viajante_id = request.headers.get('X-Viajante-ID')
+    if not viajante_id:
+        return jsonify({"erro": "Autenticação necessária (header X-Viajante-ID ausente)"}), 401
+
+    dados = request.json or {}
+    acao = dados.get("acao")  # "aceitar" | "recusar"
+    ok, erro = responder_convite(viajante_id, convite_id, acao)
+
+    if erro == "acao_invalida":
+        return jsonify({"erro": "Ação inválida. Use 'aceitar' ou 'recusar'."}), 400
+    if erro == "convite_nao_encontrado":
+        return jsonify({"erro": "Convite não encontrado"}), 404
+    if not ok:
+        return jsonify({"erro": "Erro ao responder convite"}), 500
+
+    return jsonify({"mensagem": f"Convite {acao} com sucesso"}), 200
+
+
+@app.route('/api/viagem/<string:viagem_id>/convites/<string:guest_id>', methods=["DELETE"])
+def api_revogar_convite(viagem_id, guest_id):
+    owner_id = request.headers.get('X-Viajante-ID')
+    if not owner_id:
+        return jsonify({"erro": "Autenticação necessária (header X-Viajante-ID ausente)"}), 401
+
+    # Garantir que a viagem existe e pertence ao dono (padrão atual do seu projeto)
+    viagem_data = buscar_viagem_por_id(owner_id, viagem_id)
+    if not viagem_data:
+        return jsonify({"erro": "Viagem não encontrada"}), 404
+    if viagem_data.get("id_viajante") != owner_id:
+        return jsonify({"erro": "Permissão negada"}), 403
+
+    revogou = revogar_convite(owner_id=owner_id, viagem_id=viagem_id, guest_id=guest_id)
+    if not revogou:
+        return jsonify({"mensagem": "Nenhum convite encontrado para revogar (talvez já tenha sido removido)."}), 200
+
+    return jsonify({"mensagem": "Convite revogado com sucesso"}), 200
+
+
+def _get_viajante_id_or_401():
+    viajante_id = request.headers.get('X-Viajante-ID')
+    if not viajante_id:
+        return None, (jsonify({"erro": "Autenticação necessária (header X-Viajante-ID ausente)"}), 401)
+    return viajante_id, None
+
+
+def _check_access_or_403(viajante_id, owner_id, viagem_id):
+    if not tem_acesso_a_viagem(viajante_id, owner_id, viagem_id):
+        return jsonify({"erro": "Permissão negada (convite não aceito ou revogado)"}), 403
+    # (Opcional) também garantir que a viagem existe no owner:
+    viagem = buscar_viagem_por_id(owner_id, viagem_id)
+    if not viagem:
+        return jsonify({"erro": "Viagem não encontrada"}), 404
+    return None
+
+
+@app.route('/api/viagem/<string:owner_id>/<string:viagem_id>', methods=["GET"])
+def api_viagem_detalhe_compartilhada(owner_id, viagem_id):
+    viajante_id, err = _get_viajante_id_or_401()
+    if err:
+        return err
+
+    acesso_err = _check_access_or_403(viajante_id, owner_id, viagem_id)
+    if acesso_err:
+        return acesso_err
+
+    viagem_raw = buscar_viagem_por_id(owner_id, viagem_id)
+    viagem = Viagem(viagem_raw)
+    viagem_pronta = calcular_percentual_e_cor([viagem])[0]
+
+    return jsonify({
+        "doc_id": viagem_pronta.doc_id,
+        "owner_id": owner_id,
+        "papel": "dono" if viajante_id == owner_id else "convidado",
+        "destino": viagem_pronta.destino,
+        "valor_total": viagem_pronta.valor_total,
+        "valor_restante": viagem_pronta.valor_restante,
+        "percentual_gasto": viagem_pronta.percentual_gasto,
+        "cor": viagem_pronta.cor,
+        "atividades": viagem_pronta.atividades
+    }), 200
+
+
+@app.route('/api/viagem/<string:owner_id>/<string:viagem_id>/atividade', methods=["POST"])
+def api_criar_atividade_compartilhada(owner_id, viagem_id):
+    viajante_id, err = _get_viajante_id_or_401()
+    if err:
+        return err
+
+    acesso_err = _check_access_or_403(viajante_id, owner_id, viagem_id)
+    if acesso_err:
+        return acesso_err
+
+    dados = request.json or {}
+    if "nome_atividade" not in dados or "valor_atividade" not in dados:
+        return jsonify({"erro": "Campos obrigatórios: nome_atividade, valor_atividade"}), 400
+
+    # Marca quem criou (útil para auditoria)
+    dados["criado_por"] = viajante_id
+
+    criar_atividade(owner_id, viagem_id, dados)
+    novo_restante = atualizar_valor_restante(owner_id, viagem_id)
+
+    return jsonify({"mensagem": "Atividade criada", "novo_restante": novo_restante}), 201
+
+
+@app.route('/api/viagem/<string:owner_id>/<string:viagem_id>/atividade/<string:atividade_id>', methods=['GET'])
+def api_get_atividade_compartilhada(owner_id, viagem_id, atividade_id):
+    viajante_id, err = _get_viajante_id_or_401()
+    if err:
+        return err
+
+    acesso_err = _check_access_or_403(viajante_id, owner_id, viagem_id)
+    if acesso_err:
+        return acesso_err
+
+    viagem_data = buscar_viagem_por_id(owner_id, viagem_id)
+    atividade_data = buscar_atividade_por_id(owner_id, viagem_id, atividade_id)
+
+    if not atividade_data:
+        return jsonify({"erro": "Atividade não encontrada"}), 404
+
+    return jsonify({
+        "viagem": viagem_data,
+        "atividade": atividade_data,
+        "owner_id": owner_id,
+        "papel": "dono" if viajante_id == owner_id else "convidado"
+    }), 200
+
+
+@app.route('/api/viagem/<string:owner_id>/<string:viagem_id>/atividade/<string:atividade_id>', methods=['PUT'])
+def api_atualizar_atividade_compartilhada(owner_id, viagem_id, atividade_id):
+    viajante_id, err = _get_viajante_id_or_401()
+    if err:
+        return err
+
+    acesso_err = _check_access_or_403(viajante_id, owner_id, viagem_id)
+    if acesso_err:
+        return acesso_err
+
+    novos_dados = request.json or {}
+    if not novos_dados:
+        return jsonify({"erro": "Body JSON vazio"}), 400
+
+    try:
+        atualizar_atividade(owner_id, viagem_id, atividade_id, novos_dados)
+        atualizar_valor_restante(owner_id, viagem_id)
+        return jsonify({"mensagem": "Atividade editada com sucesso!"}), 200
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
+
+
+@app.route('/api/viagem/<string:owner_id>/<string:viagem_id>/atividade/<string:atividade_id>', methods=['DELETE'])
+def api_excluir_atividade_compartilhada(owner_id, viagem_id, atividade_id):
+    viajante_id, err = _get_viajante_id_or_401()
+    if err:
+        return err
+
+    acesso_err = _check_access_or_403(viajante_id, owner_id, viagem_id)
+    if acesso_err:
+        return acesso_err
+
+    sucesso = deletar_atividade(owner_id, viagem_id, atividade_id)
+    if not sucesso:
+        return jsonify({"erro": "Atividade não encontrada."}), 404
+
+    try:
+        atualizar_valor_restante(owner_id, viagem_id)
+        return jsonify({"mensagem": "Atividade excluída com sucesso!"}), 200
+    except Exception:
+        return jsonify({"erro": "Atividade excluída, mas erro ao atualizar saldo."}), 206
+
+
+@app.route('/api/viagem/<string:viagem_id>/convites', methods=["GET"])
+def api_listar_convites_da_viagem(viagem_id):
+    owner_id = request.headers.get('X-Viajante-ID')
+    if not owner_id:
+        return jsonify({"erro": "Autenticação necessária (header X-Viajante-ID ausente)"}), 401
+
+    viagem_data = buscar_viagem_por_id(owner_id, viagem_id)
+    if not viagem_data:
+        return jsonify({"erro": "Viagem não encontrada"}), 404
+    if viagem_data.get("id_viajante") != owner_id:
+        return jsonify({"erro": "Permissão negada"}), 403
+
+    convites = listar_convites_da_viagem(owner_id, viagem_id)
+    return jsonify({"qtd": len(convites), "convites": convites}), 200

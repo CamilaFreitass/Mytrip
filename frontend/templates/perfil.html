@@ -25,19 +25,31 @@
     <div class="row gx-4 gx-lg-5">
         {% for item in viagens_com_percentual %}
         <div class="col-md-4 mb-5">
-            <a href="{{ url_for('viagem_detalhe', id_viagem=item.doc_id) }}" class="text-decoration-none text-dark">
+            {% if item.papel == 'convidado' %}
+                <a href="{{ url_for('viagem_detalhe_compartilhada', owner_id=item.owner_id, id_viagem=item.doc_id) }}" class="text-decoration-none text-dark">
+            {% else %}
+                <a href="{{ url_for('viagem_detalhe', id_viagem=item.doc_id) }}" class="text-decoration-none text-dark">
+            {% endif %}
                 <div class="card h-100 shadow-sm card-hover">
                     <div class="card-body">
-                        <h2 class="card-title h4">{{ item.destino }}</h2>
+                        <div class="d-flex justify-content-between align-items-start">
+                            <h2 class="card-title h4 mb-2">{{ item.destino }}</h2>
+                            {% if item.papel == 'convidado' %}
+                                <span class="badge bg-info text-dark">Convidado</span>
+                            {% else %}
+                                <span class="badge bg-dark">Dono</span>
+                            {% endif %}
+                        </div>
+
                         <h6 class="card-subtitle mb-2 text-muted small text-uppercase">Orçamento: R$ {{ "%.2f"|format(item.valor_total) }}</h6>
                         <h6 class="card-subtitle mb-3 text-success">Restante: R$ {{ "%.2f"|format(item.valor_restante) }}</h6>
-                        
+
                         <p class="mb-1 small">Percentual gasto:</p>
                         {% if item.percentual_gasto > 0 %}
                             <div class="progress" style="height: 25px; border-radius: 15px;">
-                                <div class="progress-bar {{ item.cor }} progress-bar-striped progress-bar-animated" 
-                                     role="progressbar" 
-                                     style="width: {{ item.percentual_gasto if item.percentual_gasto <= 100 else 100 }}%;"  
+                                <div class="progress-bar {{ item.cor }} progress-bar-striped progress-bar-animated"
+                                     role="progressbar"
+                                     style="width: {{ item.percentual_gasto if item.percentual_gasto <= 100 else 100 }}%;"
                                      aria-valuenow="{{ item.percentual_gasto }}"
                                      aria-valuemin="0" aria-valuemax="100">
                                      {{ "%.1f"|format(item.percentual_gasto) }}%
@@ -55,7 +67,7 @@
                 </div>
             </a>
         </div>
-        {% endfor %} 
+        {% endfor %}
     </div>
     {% else %}
         <div class="alert alert-info text-center py-5">
@@ -65,6 +77,6 @@
         </div>
     {% endif %}
 
-    <br> 
+    <br>
 </div>
 {% endblock %}

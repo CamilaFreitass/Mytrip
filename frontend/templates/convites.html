@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block body %}
+<div class="container mt-5 pt-5" style="max-width: 900px;">
+  <h2 class="mb-4">Meus convites</h2>
+
+  {% if convites_revogados %}
+    <div class="alert alert-warning">
+      <strong>Atenção:</strong> algumas viagens foram revogadas pelo dono.
+    </div>
+
+    <div class="list-group mb-4">
+      {% for c in convites_revogados %}
+        <div class="list-group-item d-flex justify-content-between align-items-center">
+          <div>
+            <div class="fw-bold">{{ c.destino_snapshot or "Viagem" }}</div>
+            <div class="text-muted small">
+              Dono: {{ c.owner_id }} | Status: {{ c.status }}
+            </div>
+          </div>
+          <span class="badge bg-warning text-dark">Revogado</span>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <h5 class="mb-3">Pendentes</h5>
+
+  {% if convites %}
+    <div class="list-group">
+      {% for c in convites %}
+        <div class="list-group-item d-flex justify-content-between align-items-center">
+          <div>
+            <div class="fw-bold">{{ c.destino_snapshot or "Viagem" }}</div>
+            <div class="text-muted small">
+              Dono: {{ c.owner_id }} | Status: {{ c.status }}
+            </div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <form method="POST" action="{{ url_for('responder_convite_front', convite_id=c.doc_id) }}">
+              <input type="hidden" name="acao" value="aceitar">
+              <button class="btn btn-success btn-sm" type="submit">Aceitar</button>
+            </form>
+
+            <form method="POST" action="{{ url_for('responder_convite_front', convite_id=c.doc_id) }}">
+              <input type="hidden" name="acao" value="recusar">
+              <button class="btn btn-outline-danger btn-sm" type="submit">Recusar</button>
+            </form>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="alert alert-info">Você não tem convites pendentes.</div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -90,5 +90,23 @@ footer {
 }
 
 .alert-container {
-    margin-top: 80px; /* Ajuste conforme a altura do navbar */
+    margin-top: 80px;
+}
+
+@keyframes pulse-notification {
+    0%   { transform: scale(1); opacity: 1; }
+    50%  { transform: scale(1.25); opacity: 0.8; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.notification-bell {
+    animation: pulse-notification 1.8s ease-in-out infinite;
+    display: inline-block;
+}
+
+.notification-badge {
+    font-size: 0.65rem;
+    min-width: 1.1rem;
+    padding: 0.2em 0.4em;
+    animation: pulse-notification 1.8s ease-in-out infinite;
 }

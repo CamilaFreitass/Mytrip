@@ -24,6 +24,7 @@ from .firestore_service import ( atualizar_valor_restante,
     tem_acesso_a_viagem,
     listar_viagens_compartilhadas_para_viajante,
     listar_convites_da_viagem,
+    sair_da_viagem,
 )
 
 
@@ -49,7 +50,9 @@ def api_viagem_detalhe(id_viagem):
         "valor_restante": viagem_pronta.valor_restante,
         "percentual_gasto": viagem_pronta.percentual_gasto,
         "cor": viagem_pronta.cor,
-        "atividades": viagem_pronta.atividades
+        "atividades": viagem_pronta.atividades,
+        "data_inicio": viagem_pronta.data_inicio,
+        "data_fim": viagem_pronta.data_fim,
     }), 200
 
 
@@ -347,6 +350,8 @@ def api_perfil():
             "cor": v.cor,
             "papel": original.get("papel"),
             "owner_id": original.get("owner_id"),
+            "data_inicio": v.data_inicio,
+            "data_fim": v.data_fim,
         })
 
     return jsonify({
@@ -367,8 +372,10 @@ def api_criar_viagem():
     nova_viagem_dados = {
         'destino': dados.get('destino'),
         'valor_total': dados.get('valor_total'),
-        'valor_restante': dados.get('valor_total'), # Inicialmente sobra tudo
-        'id_viajante': viajante_id
+        'valor_restante': dados.get('valor_total'),
+        'id_viajante': viajante_id,
+        'data_inicio': dados.get('data_inicio'),
+        'data_fim': dados.get('data_fim'),
     }
 
     # Salvamos no Firestore
@@ -506,7 +513,9 @@ def api_viagem_detalhe_compartilhada(owner_id, viagem_id):
         "valor_restante": viagem_pronta.valor_restante,
         "percentual_gasto": viagem_pronta.percentual_gasto,
         "cor": viagem_pronta.cor,
-        "atividades": viagem_pronta.atividades
+        "atividades": viagem_pronta.atividades,
+        "data_inicio": viagem_pronta.data_inicio,
+        "data_fim": viagem_pronta.data_fim,
     }), 200
 
 
@@ -614,3 +623,20 @@ def api_listar_convites_da_viagem(viagem_id):
 
     convites = listar_convites_da_viagem(owner_id, viagem_id)
     return jsonify({"qtd": len(convites), "convites": convites}), 200
+
+
+@app.route('/api/viagem/<string:owner_id>/<string:viagem_id>/sair', methods=["DELETE"])
+def api_sair_da_viagem(owner_id, viagem_id):
+    viajante_id, err = _get_viajante_id_or_401()
+    if err:
+        return err
+
+    if viajante_id == owner_id:
+        return jsonify({"erro": "O dono não pode sair da própria viagem"}), 403
+
+    saiu = sair_da_viagem(viajante_id, owner_id, viagem_id)
+
+    if not saiu:
+        return jsonify({"erro": "Convite não encontrado"}), 404
+
+    return jsonify({"mensagem": "Você saiu da viagem com sucesso"}), 200

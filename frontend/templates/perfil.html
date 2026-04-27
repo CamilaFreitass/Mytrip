@@ -41,6 +41,13 @@
                             {% endif %}
                         </div>
 
+                        {% if item.data_inicio or item.data_fim %}
+                            <p class="text-muted small mb-1">
+                                {% if item.data_inicio %}{{ item.data_inicio }}{% endif %}
+                                {% if item.data_inicio and item.data_fim %} → {% endif %}
+                                {% if item.data_fim %}{{ item.data_fim }}{% endif %}
+                            </p>
+                        {% endif %}
                         <h6 class="card-subtitle mb-2 text-muted small text-uppercase">Orçamento: R$ {{ "%.2f"|format(item.valor_total) }}</h6>
                         <h6 class="card-subtitle mb-3 text-success">Restante: R$ {{ "%.2f"|format(item.valor_restante) }}</h6>
 

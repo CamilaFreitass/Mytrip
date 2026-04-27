@@ -56,6 +56,19 @@
 
                     <br>
 
+                    <div class="row">
+                        <div class="col-md-6 form-group">
+                            {{ form.data_inicio.label(class="form-label") }}
+                            {{ form.data_inicio(class="form-control") }}
+                        </div>
+                        <div class="col-md-6 form-group">
+                            {{ form.data_fim.label(class="form-label") }}
+                            {{ form.data_fim(class="form-control") }}
+                        </div>
+                    </div>
+
+                    <br>
+
                     <div class="d-flex justify-content-center align-items-center gap-3 mt-4">
                         <a href="{{ url_for('perfil') }}" class="btn btn-secondary">Voltar</a>
 

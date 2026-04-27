@@ -32,6 +32,11 @@
                             {% endfor %}
                         </div>
 
+                        <div class="mb-3">
+                            {{ form.data_atividade.label(class="form-label") }}
+                            {{ form.data_atividade(class="form-control") }}
+                        </div>
+
                         <div class="mt-4">
                             {{ form.submit_atividade(class="btn btn-primary") }}
                             {% if compartilhada %}

@@ -189,18 +189,32 @@ def atualizar_viagem(viajante_id, viagem_id, dados):
 
 def deletar_viagem_completa(viajante_id, viagem_id):
     """
-    Deleta uma viagem e todas as suas atividades (subcoleção).
+    Deleta uma viagem, suas atividades e todos os convites associados.
     """
     viagem_ref = get_viagem_ref(viajante_id, viagem_id)
-    
-    # 1. No Firestore, temos que deletar os documentos da subcoleção manualmente
-    atividades_ref = get_atividades_ref(viajante_id, viagem_id)
-    atividades = atividades_ref.get()
-    
-    for doc in atividades:
+
+    # 1. Deleta atividades
+    for doc in get_atividades_ref(viajante_id, viagem_id).get():
         doc.reference.delete()
-    
-    # 2. Agora deletamos o documento da viagem em si
+
+    # 2. Lê os espelhos de convite para saber quais convidados limpar
+    convites_mirror_ref = viagem_ref.collection("convites")
+    for convite_doc in convites_mirror_ref.stream():
+        guest_id = convite_doc.id
+
+        # Remove convite do lado do convidado (busca por owner_id + viagem_id)
+        query = (
+            get_convites_ref(guest_id)
+            .where("owner_id", "==", viajante_id)
+            .where("viagem_id", "==", viagem_id)
+        )
+        for doc in query.stream():
+            doc.reference.delete()
+
+        # Remove espelho
+        convite_doc.reference.delete()
+
+    # 3. Deleta o documento da viagem
     viagem_ref.delete()
     return True
 
@@ -467,6 +481,35 @@ def listar_viagens_compartilhadas_para_viajante(viajante_id):
         viagens.append(viagem_data)
 
     return viagens
+
+
+def sair_da_viagem(guest_id, owner_id, viagem_id):
+    """
+    Convidado remove a si mesmo de uma viagem compartilhada.
+    Deleta o convite do lado do convidado e atualiza o espelho do dono.
+    """
+    now = _agora_utc()
+
+    query = (
+        get_convites_ref(guest_id)
+        .where("owner_id", "==", owner_id)
+        .where("viagem_id", "==", viagem_id)
+    )
+
+    saiu = False
+    for doc in query.stream():
+        doc.reference.delete()
+        saiu = True
+
+    if saiu:
+        try:
+            espelho_ref = get_viagem_ref(owner_id, viagem_id).collection("convites").document(guest_id)
+            if espelho_ref.get().exists:
+                espelho_ref.update({"status": "saiu", "updated_at": now})
+        except Exception:
+            pass
+
+    return saiu
 
 
 def listar_convites_da_viagem(owner_id, viagem_id):

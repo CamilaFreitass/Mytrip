@@ -14,6 +14,20 @@ BACKEND_URL = os.getenv('BACKEND_URL', 'http://127.0.0.1:5000')
 def inject_backend_url():
     return dict(BACKEND_URL=BACKEND_URL)
 
+
+@app.context_processor
+def inject_convites_pendentes():
+    qtd = 0
+    if current_user.is_authenticated:
+        try:
+            headers = {'X-Viajante-ID': current_user.get_id()}
+            resp = requests.get(f"{BACKEND_URL}/api/convites?status=pendente", headers=headers)
+            if resp.status_code == 200:
+                qtd = len(resp.json().get("convites", []))
+        except requests.exceptions.RequestException:
+            pass
+    return dict(qtd_convites_pendentes=qtd)
+
 @app.route('/')
 def home():
     return render_template("home.html")
@@ -27,7 +41,8 @@ def viagem_detalhe(id_viagem):
     if form_atividade.validate_on_submit():
         dados_envio = {
             "nome_atividade": form_atividade.nome_atividade.data,
-            "valor_atividade": float(form_atividade.valor_atividade.data)
+            "valor_atividade": float(form_atividade.valor_atividade.data),
+            "data_atividade": form_atividade.data_atividade.data.isoformat() if form_atividade.data_atividade.data else None
         }
         headers = {'X-Viajante-ID': current_user.get_id()}
         post_response = requests.post(f"{BACKEND_URL}/api/viagem/{id_viagem}/atividade", json=dados_envio, headers=headers)
@@ -78,13 +93,21 @@ def editar_viagem(id_viagem):
     viagem_dados = response.json()
     viagem_objeto = Viagem(viagem_dados)
 
-    # Preenche o formulário com o objeto vindo da API
     form = FormCriarViagem(obj=viagem_objeto)
+
+    if request.method == 'GET':
+        from datetime import date
+        if viagem_objeto.data_inicio:
+            form.data_inicio.data = date.fromisoformat(viagem_objeto.data_inicio)
+        if viagem_objeto.data_fim:
+            form.data_fim.data = date.fromisoformat(viagem_objeto.data_fim)
 
     if form.validate_on_submit():
         novos_dados = {
             'destino': form.destino.data,
-            'valor_total': form.valor_total.data
+            'valor_total': form.valor_total.data,
+            'data_inicio': form.data_inicio.data.isoformat() if form.data_inicio.data else None,
+            'data_fim': form.data_fim.data.isoformat() if form.data_fim.data else None,
         }
 
         # 2. Envia os novos dados para a API via PUT
@@ -169,11 +192,15 @@ def atividade_detalhe(id_viagem, id_atividade):
     if request.method == 'GET':
         form.nome_atividade.data = atividade.nome_atividade
         form.valor_atividade.data = atividade.valor_atividade
+        if atividade.data_atividade:
+            from datetime import date
+            form.data_atividade.data = date.fromisoformat(atividade.data_atividade)
 
     elif form.validate_on_submit():
         novos_dados = {
             'nome_atividade': form.nome_atividade.data,
-            'valor_atividade': float(form.valor_atividade.data)
+            'valor_atividade': float(form.valor_atividade.data),
+            'data_atividade': form.data_atividade.data.isoformat() if form.data_atividade.data else None
         }
 
         # 2. Envia a atualização para a API via PUT
@@ -334,7 +361,9 @@ def criar_viagem():
         # Preparamos os dados para enviar à API
         dados_envio = {
             'destino': form.destino.data,
-            'valor_total': form.valor_total.data
+            'valor_total': form.valor_total.data,
+            'data_inicio': form.data_inicio.data.isoformat() if form.data_inicio.data else None,
+            'data_fim': form.data_fim.data.isoformat() if form.data_fim.data else None,
         }
 
         # Enviamos para o Backend com header de autenticação
@@ -360,7 +389,8 @@ def viagem_detalhe_compartilhada(owner_id, id_viagem):
     if form_atividade.validate_on_submit():
         dados_envio = {
             "nome_atividade": form_atividade.nome_atividade.data,
-            "valor_atividade": float(form_atividade.valor_atividade.data)
+            "valor_atividade": float(form_atividade.valor_atividade.data),
+            "data_atividade": form_atividade.data_atividade.data.isoformat() if form_atividade.data_atividade.data else None
         }
 
         post_response = requests.post(
@@ -452,11 +482,15 @@ def atividade_detalhe_compartilhada(owner_id, id_viagem, id_atividade):
     if request.method == 'GET':
         form.nome_atividade.data = atividade.nome_atividade
         form.valor_atividade.data = atividade.valor_atividade
+        if atividade.data_atividade:
+            from datetime import date
+            form.data_atividade.data = date.fromisoformat(atividade.data_atividade)
 
     elif form.validate_on_submit():
         novos_dados = {
             'nome_atividade': form.nome_atividade.data,
-            'valor_atividade': float(form.valor_atividade.data)
+            'valor_atividade': float(form.valor_atividade.data),
+            'data_atividade': form.data_atividade.data.isoformat() if form.data_atividade.data else None
         }
 
         update_resp = requests.put(
@@ -598,3 +632,29 @@ def revogar_convite_front(id_viagem, guest_id):
         flash(f"Não foi possível revogar: {erro_msg}", "alert-danger")
 
     return redirect(url_for('viagem_detalhe', id_viagem=id_viagem))
+
+
+@app.route('/viagem-compartilhada/<string:owner_id>/<string:id_viagem>/sair', methods=["POST"])
+@login_required
+def sair_da_viagem_front(owner_id, id_viagem):
+    headers = {'X-Viajante-ID': current_user.get_id()}
+
+    try:
+        resp = requests.delete(
+            f"{BACKEND_URL}/api/viagem/{owner_id}/{id_viagem}/sair",
+            headers=headers
+        )
+    except requests.exceptions.RequestException:
+        flash("Servidor indisponível no momento. Tente novamente.", "alert-danger")
+        return redirect(url_for('viagem_detalhe_compartilhada', owner_id=owner_id, id_viagem=id_viagem))
+
+    if resp.status_code == 200:
+        flash("Você saiu da viagem com sucesso!", "alert-success")
+        return redirect(url_for('perfil'))
+    else:
+        try:
+            erro_msg = resp.json().get("erro", "Erro desconhecido")
+        except Exception:
+            erro_msg = "Resposta inválida do servidor"
+        flash(f"Não foi possível sair da viagem: {erro_msg}", "alert-danger")
+        return redirect(url_for('viagem_detalhe_compartilhada', owner_id=owner_id, id_viagem=id_viagem))

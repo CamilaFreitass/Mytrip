@@ -22,7 +22,8 @@ class Viagem:
         self.valor_total = data.get('valor_total')
         self.valor_restante = data.get('valor_restante', self.valor_total)
         self.atividades = data.get('atividades', [])
-        # Atributos extras injetados pela API (como percentual e cor)
+        self.data_inicio = data.get('data_inicio')
+        self.data_fim = data.get('data_fim')
         self.percentual_gasto = data.get('percentual_gasto', 0)
         self.cor = data.get('cor', 'bg-success')
 
@@ -31,3 +32,4 @@ class Atividade:
         self.doc_id = data.get('doc_id')
         self.nome_atividade = data.get('nome_atividade')
         self.valor_atividade = data.get('valor_atividade')
+        self.data_atividade = data.get('data_atividade')

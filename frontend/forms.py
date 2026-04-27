@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, BooleanField, FloatField
-from wtforms.validators import DataRequired, Length, Email, EqualTo, NumberRange
+from wtforms import StringField, PasswordField, SubmitField, BooleanField, FloatField, DateField
+from wtforms.validators import DataRequired, Length, Email, EqualTo, NumberRange, Optional
 
 
 
@@ -22,10 +22,13 @@ class FormLogin(FlaskForm):
 class FormCriarViagem(FlaskForm):
     destino = StringField('Destino', validators=[DataRequired()])
     valor_total = FloatField('Valor Total', validators=[DataRequired(), NumberRange(min=0)])
+    data_inicio = DateField('Data de Início', validators=[Optional()], format='%Y-%m-%d')
+    data_fim = DateField('Data de Fim', validators=[Optional()], format='%Y-%m-%d')
     submit_viagem = SubmitField('Criar Viagem')
 
 
 class FormCriarAtividade(FlaskForm):
     nome_atividade = StringField('Nome da atividade', validators=[DataRequired()])
     valor_atividade = FloatField('Valor (R$)', validators=[DataRequired()])
+    data_atividade = DateField('Data', validators=[Optional()], format='%Y-%m-%d')
     submit_atividade = SubmitField('Salvar Atividade')

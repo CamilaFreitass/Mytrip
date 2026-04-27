@@ -32,7 +32,7 @@ class Viajante(UserMixin):
 # As classes abaixo servem para estruturar os dados.
 
 class Viagem:
-    
+
     def __init__(self, data):
         self.doc_id = data.get('doc_id')
         self.destino = data.get('destino')
@@ -40,6 +40,8 @@ class Viagem:
         self.valor_restante = data.get('valor_restante', self.valor_total)
         self.id_viajante = data.get('id_viajante')
         self.atividades = data.get('atividades', [])
+        self.data_inicio = data.get('data_inicio')
+        self.data_fim = data.get('data_fim')
         
     # No Firestore, 'atualizar_valor_restante' exigirá uma consulta a subcoleções
     # e uma escrita (update) no documento pai (Viagem).
@@ -50,11 +52,12 @@ class Viagem:
 
 
 class Atividade:
-    
+
     def __init__(self, data):
         self.doc_id = data.get('doc_id')
         self.nome_atividade = data.get('nome_atividade')
         self.valor_atividade = data.get('valor_atividade')
+        self.data_atividade = data.get('data_atividade')
         self.id_viagem = data.get('id_viagem')
         
     def __repr__(self):

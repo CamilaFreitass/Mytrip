@@ -1,4 +1,4 @@
-from flask import url_for
+import os
 from trip import s, mail
 from flask_mail import Message
 from itsdangerous import BadTimeSignature, SignatureExpired
@@ -56,11 +56,10 @@ def generate_confirmation_token(email):
 
 # essa função usa o servidor SMTP configurado (Google Workspace) p; enviar mensagem formatada para a caixa de entrada do usuário
 def send_confirmation_email(user_email):
-    # o token é usado para construir o link completo de confirmação
     token = generate_confirmation_token(user_email)
-    
-    # Aponta para a nova rota 
-    confirm_url = url_for('confirm_email', token=token, _external=True)
+
+    frontend_url = os.getenv('FRONTEND_URL', 'http://127.0.0.1:8080')
+    confirm_url = f"{frontend_url}/confirm/{token}"
     
     msg = Message(
         subject='Confirme Seu E-mail para Ativar Sua Conta',

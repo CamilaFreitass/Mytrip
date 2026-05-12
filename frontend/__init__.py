@@ -25,11 +25,16 @@ login_manager.login_message_category = 'alert-info'
 
 @login_manager.user_loader
 def load_user(user_id):
+    from flask import session
     from models import Viajante
+    cached = session.get('_user_data')
+    if cached and cached.get('doc_id') == user_id:
+        return Viajante(cached)
     BACKEND_URL = os.getenv('BACKEND_URL', 'http://127.0.0.1:5000')
     response = requests.get(f"{BACKEND_URL}/api/usuario/{user_id}")
     if response.status_code == 200:
         viajante_data = response.json()
+        session['_user_data'] = viajante_data
         return Viajante(viajante_data)
     return None
 

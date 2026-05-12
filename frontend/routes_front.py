@@ -1,5 +1,5 @@
 import requests
-from flask import render_template, redirect, url_for, flash, request
+from flask import render_template, redirect, url_for, flash, request, session
 from flask_login import login_required, login_user, logout_user, current_user
 from __init__ import app
 from forms import FormCriarAtividade, FormCriarViagem, FormLogin, FormCriarConta
@@ -10,6 +10,24 @@ import os
 BACKEND_URL = os.getenv('BACKEND_URL', 'http://127.0.0.1:5000')
 
 
+def _salvar_usuario_na_session(viajante_data):
+    session['_user_data'] = {
+        'doc_id': viajante_data.get('doc_id') or viajante_data.get('email'),
+        'nome': viajante_data.get('nome'),
+        'email': viajante_data.get('email'),
+        'is_verified': viajante_data.get('is_verified', False),
+    }
+
+
+def _atualizar_qtd_convites(headers):
+    try:
+        resp = requests.get(f"{BACKEND_URL}/api/convites?status=pendente", headers=headers)
+        if resp.status_code == 200:
+            session['qtd_convites_pendentes'] = len(resp.json().get("convites", []))
+    except requests.exceptions.RequestException:
+        pass
+
+
 @app.context_processor
 def inject_backend_url():
     return dict(BACKEND_URL=BACKEND_URL)
@@ -17,15 +35,7 @@ def inject_backend_url():
 
 @app.context_processor
 def inject_convites_pendentes():
-    qtd = 0
-    if current_user.is_authenticated:
-        try:
-            headers = {'X-Viajante-ID': current_user.get_id()}
-            resp = requests.get(f"{BACKEND_URL}/api/convites?status=pendente", headers=headers)
-            if resp.status_code == 200:
-                qtd = len(resp.json().get("convites", []))
-        except requests.exceptions.RequestException:
-            pass
+    qtd = session.get('qtd_convites_pendentes', 0) if current_user.is_authenticated else 0
     return dict(qtd_convites_pendentes=qtd)
 
 @app.route('/')
@@ -230,7 +240,8 @@ def confirm_email(token):
 
         # 3. Inicia a sessão no Frontend
         login_user(viajante)
-
+        _salvar_usuario_na_session(viajante_dados)
+        _atualizar_qtd_convites({'X-Viajante-ID': viajante.get_id()})
         flash('Parabéns! Sua conta foi ativada com sucesso!', 'alert-success')
         return redirect(url_for('perfil'))
 
@@ -258,7 +269,8 @@ def login_callback():
             user = Viajante(viajante_data)
 
             login_user(user, remember=True)
-
+            _salvar_usuario_na_session(viajante_data)
+            _atualizar_qtd_convites({'X-Viajante-ID': user.get_id()})
             flash("Login realizado com sucesso!", "alert-success")
             return redirect(url_for('perfil'))
 
@@ -287,8 +299,11 @@ def acesso():
         response = requests.post(f"{BACKEND_URL}/api/login", json=dados_login)
 
         if response.status_code == 200:
-            viajante = Viajante(response.json())
+            viajante_data = response.json()
+            viajante = Viajante(viajante_data)
             login_user(viajante, remember=form_login.lembrar_dados.data)
+            _salvar_usuario_na_session(viajante_data)
+            _atualizar_qtd_convites({'X-Viajante-ID': viajante.get_id()})
             flash('Login feito com sucesso!', 'alert-success')
             return redirect(url_for('perfil'))
         elif response.status_code == 403:
@@ -321,6 +336,8 @@ def sair():
     requests.get(f"{BACKEND_URL}/api/sair")
 
     # 2. Encerra a sessão no frontend
+    session.pop('_user_data', None)
+    session.pop('qtd_convites_pendentes', None)
     logout_user()
 
     flash('Logout feito com sucesso!', 'alert-success')
@@ -564,6 +581,7 @@ def convites():
         return redirect(url_for('perfil'))
 
     convites_pendentes = (pendentes_resp.json() or {}).get("convites", [])
+    session['qtd_convites_pendentes'] = len(convites_pendentes)
 
     convites_revogados = []
     if revogados_resp.status_code == 200:
@@ -597,6 +615,7 @@ def responder_convite_front(convite_id):
         return redirect(url_for('convites'))
 
     if resp.status_code == 200:
+        _atualizar_qtd_convites(headers)
         flash(f"Convite {acao} com sucesso!", "alert-success")
     else:
         try:

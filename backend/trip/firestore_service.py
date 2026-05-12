@@ -78,28 +78,31 @@ def buscar_viagem_por_id(viajante_id, viagem_id):
     # Busca direta na coleção raiz 'viagens'
     viagem_ref = VIAJANTES_REF.document(viajante_id).collection('viagens').document(id_limpo)
 
-    print(f"--- DEBUG: Buscando no caminho CORRETO: viajantes/{viajante_id}/viagens/{id_limpo} ---")
-
     viagem_doc = viagem_ref.get()
-    
+
     if viagem_doc.exists:
         viagem_data = viagem_doc.to_dict()
-        viagem_data['doc_id'] = viagem_doc.id 
-        
-        # Busca a subcoleção
-        atividades_snapshot = viagem_ref.collection('atividades').stream()
-        
+        viagem_data['doc_id'] = viagem_doc.id
+
         lista_atividades = []
-        for doc in atividades_snapshot:
+        for doc in viagem_ref.collection('atividades').stream():
             ativid_data = doc.to_dict()
             ativid_data['doc_id'] = doc.id
             lista_atividades.append(ativid_data)
-        
+
         viagem_data['atividades'] = lista_atividades
-        print(f"--- SUCESSO: Encontrada viagem com {len(lista_atividades)} atividades ---")
         return viagem_data
-    
-    print(f"--- ERRO: Viagem {id_limpo} não encontrada dentro do viajante {viajante_id} ---")
+
+    return None
+
+
+def buscar_viagem_basica(viajante_id, viagem_id):
+    viagem_ref = VIAJANTES_REF.document(viajante_id).collection('viagens').document(viagem_id.strip())
+    viagem_doc = viagem_ref.get()
+    if viagem_doc.exists:
+        viagem_data = viagem_doc.to_dict()
+        viagem_data['doc_id'] = viagem_doc.id
+        return viagem_data
     return None
 
 
@@ -121,18 +124,7 @@ def criar_atividade(viajante_id, viagem_id, dados_atividade):
 
 # --- NOVO: DELETAR ATIVIDADE ---
 def deletar_atividade(viajante_id, viagem_id, atividade_id):
-    """
-    Deleta um documento de Atividade específico na subcoleção.
-    """
-    
-    atividade_doc_ref = get_atividades_ref(viajante_id, viagem_id).document(atividade_id)
-    
-    # Opcional: verifica se existe antes, mas o delete() é seguro mesmo que não exista.
-    if not atividade_doc_ref.get().exists:
-        return False
-        
-    atividade_doc_ref.delete()
-    
+    get_atividades_ref(viajante_id, viagem_id).document(atividade_id).delete()
     return True
 
 
@@ -147,7 +139,6 @@ def atualizar_valor_restante(viajante_id, viagem_id):
     viagem_doc = viagem_ref.get()
     
     if not viagem_doc.exists:
-        print(f"ERRO: Viagem {viagem_id} não encontrada para o usuário {viajante_id}")
         return None
     
     # Pegamos o valor total definido para a viagem
@@ -176,7 +167,6 @@ def atualizar_valor_restante(viajante_id, viagem_id):
         'valor_restante': valor_restante
     })
 
-    print(f"--- SINCRO: Viagem {viagem_id} atualizada. Restante: R$ {valor_restante} ---")
     return valor_restante
 
 
@@ -264,8 +254,6 @@ def criar_nova_viagem(viajante_id, dados_viagem):
     
     # 3. Salva os dados
     novo_doc_ref.set(dados_viagem)
-    
-    print(f"--- SUCESSO: Viagem criada no caminho: viajantes/{viajante_id}/viagens/{novo_doc_ref.id} ---")
     
     # 4. Retorna o ID gerado
     return novo_doc_ref.id
@@ -470,9 +458,8 @@ def listar_viagens_compartilhadas_para_viajante(viajante_id):
         if not owner_id or not viagem_id:
             continue
 
-        viagem_data = buscar_viagem_por_id(owner_id, viagem_id)
+        viagem_data = buscar_viagem_basica(owner_id, viagem_id)
         if not viagem_data:
-            # A viagem pode ter sido deletada pelo dono; ignoramos por enquanto
             continue
 
         # Metadados para o frontend

@@ -27,3 +27,6 @@ frontend/static/fotos_perfil/
 serviceAccountKey.json
 
 firebase-key.json
+
+# Instruções do Claude Code
+CLAUDE.md

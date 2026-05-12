@@ -126,30 +126,16 @@ def api_deletar_viagem(viagem_id):
 
 @app.route('/api/viagem/<string:id_viagem>/atividade/<string:id_atividade>', methods=['DELETE'])
 def api_excluir_atividade(id_viagem, id_atividade):
-    print(f"DEBUG: Rota DELETE chamada para viagem {id_viagem}, atividade {id_atividade}")
-
     viajante_id = request.headers.get('X-Viajante-ID')
     if not viajante_id:
-        print("DEBUG: Header X-Viajante-ID ausente")
         return jsonify({"erro": "Autenticação necessária (header X-Viajante-ID ausente)"}), 401
 
-    # 1. Tenta deletar a atividade
-    sucesso = deletar_atividade(viajante_id, id_viagem, id_atividade)
-    if sucesso:
-        print("DEBUG: Atividade deletada com sucesso")
-    else:
-        print("DEBUG: Atividade não encontrada para deleção")
-
-    if sucesso:
-        try:
-            # 2. Recalcula o valor restante da viagem pai
-            atualizar_valor_restante(viajante_id, id_viagem)
-            return jsonify({"mensagem": "Atividade excluída com sucesso!"}), 200
-        except Exception as e:
-            print(f"DEBUG: Erro ao atualizar saldo: {str(e)}")
-            return jsonify({"erro": "Atividade excluída, mas erro ao atualizar saldo."}), 206
-
-    return jsonify({"erro": "Atividade não encontrada."}), 404
+    deletar_atividade(viajante_id, id_viagem, id_atividade)
+    try:
+        atualizar_valor_restante(viajante_id, id_viagem)
+        return jsonify({"mensagem": "Atividade excluída com sucesso!"}), 200
+    except Exception as e:
+        return jsonify({"erro": "Atividade excluída, mas erro ao atualizar saldo."}), 206
 
 
 @app.route('/test_delete', methods=['DELETE'])
@@ -297,8 +283,7 @@ def api_auth_google():
         # Passamos um parâmetro (como o email) para o Front saber quem logar
         return redirect(f"{frontend_url}/login/callback?email={email}")
 
-    except Exception as e:
-        print(f"Erro na autenticação Google: {e}")
+    except Exception:
         return redirect(f"{frontend_url}/acesso?erro=auth_failed")
 
 
@@ -482,12 +467,11 @@ def _get_viajante_id_or_401():
 
 def _check_access_or_403(viajante_id, owner_id, viagem_id):
     if not tem_acesso_a_viagem(viajante_id, owner_id, viagem_id):
-        return jsonify({"erro": "Permissão negada (convite não aceito ou revogado)"}), 403
-    # (Opcional) também garantir que a viagem existe no owner:
+        return (jsonify({"erro": "Permissão negada (convite não aceito ou revogado)"}), 403), None
     viagem = buscar_viagem_por_id(owner_id, viagem_id)
     if not viagem:
-        return jsonify({"erro": "Viagem não encontrada"}), 404
-    return None
+        return (jsonify({"erro": "Viagem não encontrada"}), 404), None
+    return None, viagem
 
 
 @app.route('/api/viagem/<string:owner_id>/<string:viagem_id>', methods=["GET"])
@@ -496,11 +480,10 @@ def api_viagem_detalhe_compartilhada(owner_id, viagem_id):
     if err:
         return err
 
-    acesso_err = _check_access_or_403(viajante_id, owner_id, viagem_id)
+    acesso_err, viagem_raw = _check_access_or_403(viajante_id, owner_id, viagem_id)
     if acesso_err:
         return acesso_err
 
-    viagem_raw = buscar_viagem_por_id(owner_id, viagem_id)
     viagem = Viagem(viagem_raw)
     viagem_pronta = calcular_percentual_e_cor([viagem])[0]
 
@@ -525,7 +508,7 @@ def api_criar_atividade_compartilhada(owner_id, viagem_id):
     if err:
         return err
 
-    acesso_err = _check_access_or_403(viajante_id, owner_id, viagem_id)
+    acesso_err, _ = _check_access_or_403(viajante_id, owner_id, viagem_id)
     if acesso_err:
         return acesso_err
 
@@ -548,11 +531,10 @@ def api_get_atividade_compartilhada(owner_id, viagem_id, atividade_id):
     if err:
         return err
 
-    acesso_err = _check_access_or_403(viajante_id, owner_id, viagem_id)
+    acesso_err, viagem_data = _check_access_or_403(viajante_id, owner_id, viagem_id)
     if acesso_err:
         return acesso_err
 
-    viagem_data = buscar_viagem_por_id(owner_id, viagem_id)
     atividade_data = buscar_atividade_por_id(owner_id, viagem_id, atividade_id)
 
     if not atividade_data:
@@ -572,7 +554,7 @@ def api_atualizar_atividade_compartilhada(owner_id, viagem_id, atividade_id):
     if err:
         return err
 
-    acesso_err = _check_access_or_403(viajante_id, owner_id, viagem_id)
+    acesso_err, _ = _check_access_or_403(viajante_id, owner_id, viagem_id)
     if acesso_err:
         return acesso_err
 
@@ -594,14 +576,11 @@ def api_excluir_atividade_compartilhada(owner_id, viagem_id, atividade_id):
     if err:
         return err
 
-    acesso_err = _check_access_or_403(viajante_id, owner_id, viagem_id)
+    acesso_err, _ = _check_access_or_403(viajante_id, owner_id, viagem_id)
     if acesso_err:
         return acesso_err
 
-    sucesso = deletar_atividade(owner_id, viagem_id, atividade_id)
-    if not sucesso:
-        return jsonify({"erro": "Atividade não encontrada."}), 404
-
+    deletar_atividade(owner_id, viagem_id, atividade_id)
     try:
         atualizar_valor_restante(owner_id, viagem_id)
         return jsonify({"mensagem": "Atividade excluída com sucesso!"}), 200

@@ -2,7 +2,7 @@ from flask import redirect, request, jsonify, url_for
 from trip import app, bcrypt, google
 from trip.models import Viajante, Viagem, Atividade
 from flask_login import login_user, logout_user, current_user, login_required
-from trip.utility import calcular_percentual_e_cor, confirm_token, send_confirmation_email
+from trip.utility import calcular_percentual_e_cor, confirm_token, send_confirmation_email, processar_moeda_atividade, enriquecer_atividades_com_moedas, enriquecer_orcamento_com_moedas, cotacoes_do_dia
 import os
 from .firestore_service import ( atualizar_valor_restante,
     criar_atividade,
@@ -42,8 +42,14 @@ def api_viagem_detalhe(id_viagem):
     # Lógica de processamento de dados (Cálculos) permanece no Backend
     viagem = Viagem(viagem_raw)
     viagem_pronta = calcular_percentual_e_cor([viagem])[0]
+    enriquecer_atividades_com_moedas(viagem_pronta.atividades, viagem_pronta.moeda_destino, viagem_pronta.moeda_comparacao)
+    orcamento_colunas, colunas_moeda = enriquecer_orcamento_com_moedas(
+        float(viagem_pronta.valor_total or 0),
+        float(viagem_pronta.valor_restante or 0),
+        viagem_pronta.moeda_destino,
+        viagem_pronta.moeda_comparacao,
+    )
 
-    # Retornamos os dados limpos para o Frontend
     return jsonify({
         "destino": viagem_pronta.destino,
         "valor_total": viagem_pronta.valor_total,
@@ -53,6 +59,11 @@ def api_viagem_detalhe(id_viagem):
         "atividades": viagem_pronta.atividades,
         "data_inicio": viagem_pronta.data_inicio,
         "data_fim": viagem_pronta.data_fim,
+        "moeda_destino": viagem_pronta.moeda_destino,
+        "moeda_comparacao": viagem_pronta.moeda_comparacao,
+        "colunas_moeda": colunas_moeda,
+        "orcamento_colunas": orcamento_colunas,
+        "cotacoes": cotacoes_do_dia(viagem_pronta.moeda_destino, viagem_pronta.moeda_comparacao),
     }), 200
 
 
@@ -64,6 +75,7 @@ def api_criar_atividade(id_viagem):
 
     dados = request.json  # O backend recebe JSON puro
 
+    processar_moeda_atividade(dados)
     criar_atividade(viajante_id, id_viagem, dados)
     novo_restante = atualizar_valor_restante(viajante_id, id_viagem)
 
@@ -170,6 +182,7 @@ def api_atualizar_atividade(id_viagem, id_atividade):
     novos_dados = request.json  # Recebe JSON do frontend
 
     try:
+        processar_moeda_atividade(novos_dados)
         # 1. Atualiza a atividade
         atualizar_atividade(viajante_id, id_viagem, id_atividade, novos_dados)
         # 2. Recalcula o saldo da viagem pai
@@ -361,6 +374,8 @@ def api_criar_viagem():
         'id_viajante': viajante_id,
         'data_inicio': dados.get('data_inicio'),
         'data_fim': dados.get('data_fim'),
+        'moeda_destino': dados.get('moeda_destino'),
+        'moeda_comparacao': dados.get('moeda_comparacao', 'USD'),
     }
 
     # Salvamos no Firestore
@@ -486,6 +501,13 @@ def api_viagem_detalhe_compartilhada(owner_id, viagem_id):
 
     viagem = Viagem(viagem_raw)
     viagem_pronta = calcular_percentual_e_cor([viagem])[0]
+    enriquecer_atividades_com_moedas(viagem_pronta.atividades, viagem_pronta.moeda_destino, viagem_pronta.moeda_comparacao)
+    orcamento_colunas, colunas_moeda = enriquecer_orcamento_com_moedas(
+        float(viagem_pronta.valor_total or 0),
+        float(viagem_pronta.valor_restante or 0),
+        viagem_pronta.moeda_destino,
+        viagem_pronta.moeda_comparacao,
+    )
 
     return jsonify({
         "doc_id": viagem_pronta.doc_id,
@@ -499,6 +521,11 @@ def api_viagem_detalhe_compartilhada(owner_id, viagem_id):
         "atividades": viagem_pronta.atividades,
         "data_inicio": viagem_pronta.data_inicio,
         "data_fim": viagem_pronta.data_fim,
+        "moeda_destino": viagem_pronta.moeda_destino,
+        "moeda_comparacao": viagem_pronta.moeda_comparacao,
+        "colunas_moeda": colunas_moeda,
+        "orcamento_colunas": orcamento_colunas,
+        "cotacoes": cotacoes_do_dia(viagem_pronta.moeda_destino, viagem_pronta.moeda_comparacao),
     }), 200
 
 
@@ -519,6 +546,7 @@ def api_criar_atividade_compartilhada(owner_id, viagem_id):
     # Marca quem criou (útil para auditoria)
     dados["criado_por"] = viajante_id
 
+    processar_moeda_atividade(dados)
     criar_atividade(owner_id, viagem_id, dados)
     novo_restante = atualizar_valor_restante(owner_id, viagem_id)
 
@@ -563,6 +591,7 @@ def api_atualizar_atividade_compartilhada(owner_id, viagem_id, atividade_id):
         return jsonify({"erro": "Body JSON vazio"}), 400
 
     try:
+        processar_moeda_atividade(novos_dados)
         atualizar_atividade(owner_id, viagem_id, atividade_id, novos_dados)
         atualizar_valor_restante(owner_id, viagem_id)
         return jsonify({"mensagem": "Atividade editada com sucesso!"}), 200

@@ -26,10 +26,14 @@ class Viagem:
         self.data_fim = data.get('data_fim')
         self.percentual_gasto = data.get('percentual_gasto', 0)
         self.cor = data.get('cor', 'bg-success')
+        self.moeda_destino = data.get('moeda_destino')
+        self.moeda_comparacao = data.get('moeda_comparacao', 'USD')
 
 class Atividade:
     def __init__(self, data):
         self.doc_id = data.get('doc_id')
         self.nome_atividade = data.get('nome_atividade')
         self.valor_atividade = data.get('valor_atividade')
+        self.moeda_inserida = data.get('moeda_inserida', 'BRL')
+        self.valor_inserido = data.get('valor_inserido', self.valor_atividade)
         self.data_atividade = data.get('data_atividade')

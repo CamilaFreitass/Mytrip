@@ -42,6 +42,8 @@ class Viagem:
         self.atividades = data.get('atividades', [])
         self.data_inicio = data.get('data_inicio')
         self.data_fim = data.get('data_fim')
+        self.moeda_destino = data.get('moeda_destino')
+        self.moeda_comparacao = data.get('moeda_comparacao', 'USD')
         
     # No Firestore, 'atualizar_valor_restante' exigirá uma consulta a subcoleções
     # e uma escrita (update) no documento pai (Viagem).
@@ -57,6 +59,8 @@ class Atividade:
         self.doc_id = data.get('doc_id')
         self.nome_atividade = data.get('nome_atividade')
         self.valor_atividade = data.get('valor_atividade')
+        self.moeda_inserida = data.get('moeda_inserida', 'BRL')
+        self.valor_inserido = data.get('valor_inserido', self.valor_atividade)
         self.data_atividade = data.get('data_atividade')
         self.id_viagem = data.get('id_viagem')
         

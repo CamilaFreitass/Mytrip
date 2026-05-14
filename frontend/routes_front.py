@@ -19,6 +19,15 @@ def _salvar_usuario_na_session(viajante_data):
     }
 
 
+def _ordenar_atividades_por_data(viagem_data):
+    atividades = viagem_data.get('atividades', [])
+    viagem_data['atividades'] = sorted(
+        atividades,
+        key=lambda a: (not bool(a.get('data_atividade')), a.get('data_atividade') or '')
+    )
+    return viagem_data
+
+
 def _atualizar_qtd_convites(headers):
     try:
         resp = requests.get(f"{BACKEND_URL}/api/convites?status=pendente", headers=headers)
@@ -52,6 +61,7 @@ def viagem_detalhe(id_viagem):
         dados_envio = {
             "nome_atividade": form_atividade.nome_atividade.data,
             "valor_atividade": float(form_atividade.valor_atividade.data),
+            "moeda_inserida": form_atividade.moeda_inserida.data or 'BRL',
             "data_atividade": form_atividade.data_atividade.data.isoformat() if form_atividade.data_atividade.data else None
         }
         headers = {'X-Viajante-ID': current_user.get_id()}
@@ -70,6 +80,7 @@ def viagem_detalhe(id_viagem):
         viagem_data = response.json()
         if 'doc_id' not in viagem_data:
             viagem_data['doc_id'] = id_viagem
+        _ordenar_atividades_por_data(viagem_data)
         convites_viagem = []
         try:
             conv_resp = requests.get(f"{BACKEND_URL}/api/viagem/{id_viagem}/convites", headers=headers)
@@ -111,6 +122,9 @@ def editar_viagem(id_viagem):
             form.data_inicio.data = date.fromisoformat(viagem_objeto.data_inicio)
         if viagem_objeto.data_fim:
             form.data_fim.data = date.fromisoformat(viagem_objeto.data_fim)
+        if viagem_objeto.moeda_destino:
+            form.moeda_destino.data = viagem_objeto.moeda_destino
+        form.moeda_comparacao.data = viagem_objeto.moeda_comparacao
 
     if form.validate_on_submit():
         novos_dados = {
@@ -118,6 +132,8 @@ def editar_viagem(id_viagem):
             'valor_total': form.valor_total.data,
             'data_inicio': form.data_inicio.data.isoformat() if form.data_inicio.data else None,
             'data_fim': form.data_fim.data.isoformat() if form.data_fim.data else None,
+            'moeda_destino': form.moeda_destino.data or None,
+            'moeda_comparacao': form.moeda_comparacao.data or 'USD',
         }
 
         # 2. Envia os novos dados para a API via PUT
@@ -201,7 +217,8 @@ def atividade_detalhe(id_viagem, id_atividade):
     # Preenche o formulário se for um GET ou se o formulário for reiniciado
     if request.method == 'GET':
         form.nome_atividade.data = atividade.nome_atividade
-        form.valor_atividade.data = atividade.valor_atividade
+        form.valor_atividade.data = atividade.valor_inserido
+        form.moeda_inserida.data = atividade.moeda_inserida
         if atividade.data_atividade:
             from datetime import date
             form.data_atividade.data = date.fromisoformat(atividade.data_atividade)
@@ -210,6 +227,7 @@ def atividade_detalhe(id_viagem, id_atividade):
         novos_dados = {
             'nome_atividade': form.nome_atividade.data,
             'valor_atividade': float(form.valor_atividade.data),
+            'moeda_inserida': form.moeda_inserida.data or 'BRL',
             'data_atividade': form.data_atividade.data.isoformat() if form.data_atividade.data else None
         }
 
@@ -381,6 +399,8 @@ def criar_viagem():
             'valor_total': form.valor_total.data,
             'data_inicio': form.data_inicio.data.isoformat() if form.data_inicio.data else None,
             'data_fim': form.data_fim.data.isoformat() if form.data_fim.data else None,
+            'moeda_destino': form.moeda_destino.data or None,
+            'moeda_comparacao': form.moeda_comparacao.data or 'USD',
         }
 
         # Enviamos para o Backend com header de autenticação
@@ -407,6 +427,7 @@ def viagem_detalhe_compartilhada(owner_id, id_viagem):
         dados_envio = {
             "nome_atividade": form_atividade.nome_atividade.data,
             "valor_atividade": float(form_atividade.valor_atividade.data),
+            "moeda_inserida": form_atividade.moeda_inserida.data or 'BRL',
             "data_atividade": form_atividade.data_atividade.data.isoformat() if form_atividade.data_atividade.data else None
         }
 
@@ -435,6 +456,7 @@ def viagem_detalhe_compartilhada(owner_id, id_viagem):
     if response.status_code == 200:
         viagem_data = response.json()
         viagem_data["doc_id"] = viagem_data.get("doc_id") or id_viagem
+        _ordenar_atividades_por_data(viagem_data)
         return render_template(
             'viagem_detalhe.html',
             viagem=viagem_data,
@@ -498,7 +520,8 @@ def atividade_detalhe_compartilhada(owner_id, id_viagem, id_atividade):
 
     if request.method == 'GET':
         form.nome_atividade.data = atividade.nome_atividade
-        form.valor_atividade.data = atividade.valor_atividade
+        form.valor_atividade.data = atividade.valor_inserido
+        form.moeda_inserida.data = atividade.moeda_inserida
         if atividade.data_atividade:
             from datetime import date
             form.data_atividade.data = date.fromisoformat(atividade.data_atividade)
@@ -507,6 +530,7 @@ def atividade_detalhe_compartilhada(owner_id, id_viagem, id_atividade):
         novos_dados = {
             'nome_atividade': form.nome_atividade.data,
             'valor_atividade': float(form.valor_atividade.data),
+            'moeda_inserida': form.moeda_inserida.data or 'BRL',
             'data_atividade': form.data_atividade.data.isoformat() if form.data_atividade.data else None
         }
 

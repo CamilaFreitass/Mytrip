@@ -25,11 +25,19 @@
                         </div>
 
                         <div class="mb-3">
-                            {{ form.valor_atividade.label(class="form-label") }}
-                            {{ form.valor_atividade(class="form-control" + (" is-invalid" if form.valor_atividade.errors else "")) }}
-                            {% for error in form.valor_atividade.errors %}
-                                <div class="invalid-feedback">{{ error }}</div>
-                            {% endfor %}
+                            <div class="row g-2">
+                                <div class="col-5">
+                                    {{ form.moeda_inserida.label(class="form-label") }}
+                                    {{ form.moeda_inserida(class="form-select") }}
+                                </div>
+                                <div class="col-7">
+                                    {{ form.valor_atividade.label(class="form-label") }}
+                                    {{ form.valor_atividade(class="form-control" + (" is-invalid" if form.valor_atividade.errors else "")) }}
+                                    {% for error in form.valor_atividade.errors %}
+                                        <div class="invalid-feedback">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
                         </div>
 
                         <div class="mb-3">

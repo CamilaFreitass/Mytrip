@@ -22,82 +22,143 @@
                 </div>
             {% endif %}
 
-            <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+            {% if viagem.cotacoes %}
+                <div class="d-flex flex-wrap gap-2 mb-3 justify-content-center">
+                    {% for c in viagem.cotacoes %}
+                        <div class="cotacao-badge {% if c.is_base %}cotacao-base{% endif %}">
+                            <span class="cotacao-moeda">{{ c.moeda }}</span>
+                            <span class="cotacao-valor">{{ c.taxa_brl or '—' }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-2">
                 <h5 class="mb-0">Atividades Planejadas</h5>
                 <span class="badge bg-dark">{{ viagem.atividades|length }} itens</span>
             </div>
 
+            {% macro botoes(atividade) %}
+                {% if compartilhada %}
+                    <a href="{{ url_for('atividade_detalhe_compartilhada', owner_id=owner_id, id_viagem=viagem.doc_id, id_atividade=atividade['doc_id']) }}"
+                       class="btn btn-outline-secondary btn-sm px-2" title="Editar">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    {% if viagem.doc_id and atividade['doc_id'] %}
+                        <form action="{{ url_for('excluir_atividade_compartilhada', owner_id=owner_id, id_viagem=viagem.doc_id, id_atividade=atividade['doc_id']) }}" method="POST" style="display:inline;">
+                            <button type="submit" class="btn btn-outline-danger btn-sm px-2" title="Excluir" onclick="return confirm('Excluir esta atividade?');"><i class="bi bi-trash"></i></button>
+                        </form>
+                    {% else %}
+                        <button class="btn btn-outline-danger btn-sm px-2" disabled><i class="bi bi-trash"></i></button>
+                    {% endif %}
+                {% else %}
+                    <a href="{{ url_for('atividade_detalhe', id_viagem=viagem.doc_id, id_atividade=atividade['doc_id']) }}"
+                       class="btn btn-outline-secondary btn-sm px-2" title="Editar">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    {% if viagem.doc_id and atividade['doc_id'] %}
+                        <form action="{{ url_for('excluir_atividade', id_viagem=viagem.doc_id, id_atividade=atividade['doc_id']) }}" method="POST" style="display:inline;">
+                            <button type="submit" class="btn btn-outline-danger btn-sm px-2" title="Excluir" onclick="return confirm('Excluir esta atividade?');"><i class="bi bi-trash"></i></button>
+                        </form>
+                    {% else %}
+                        <button class="btn btn-outline-danger btn-sm px-2" disabled><i class="bi bi-trash"></i></button>
+                    {% endif %}
+                {% endif %}
+            {% endmacro %}
+
             {% if viagem.atividades %}
-                <ul class="list-group list-group-flush mb-4">
-                    {% for atividade in viagem['atividades'] %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                            <div>
-                                <span class="fw-bold">{{ atividade['nome_atividade'] }}</span>
-                                <br>
-                                <small class="text-muted">R$ {{ "%.2f"|format(atividade['valor_atividade']|float) }}</small>
-                                {% if atividade.get('data_atividade') %}
-                                    <br>
-                                    <small class="text-muted">{{ atividade['data_atividade'] }}</small>
-                                {% endif %}
+                {% set com_data = viagem.atividades | selectattr('data_atividade') | list %}
+                {% set sem_data = viagem.atividades | rejectattr('data_atividade') | list %}
+
+                {% if com_data %}
+                    <div class="timeline mb-3">
+                        {% for atividade in com_data %}
+                            <div class="timeline-item">
+                                <div class="timeline-card">
+                                    <div class="flex-grow-1">
+                                        <div class="timeline-date">
+                                            {{ atividade['data_atividade'].split('-')[2] }}/{{ atividade['data_atividade'].split('-')[1] }}/{{ atividade['data_atividade'].split('-')[0] }}
+                                        </div>
+                                        <span class="fw-bold">{{ atividade['nome_atividade'] }}</span><br>
+                                        <small class="text-muted">
+                                            {{ (atividade.valores_colunas or []) | join(' · ') or 'R$ ' ~ "%.2f"|format(atividade['valor_atividade']|float) }}
+                                        </small>
+                                    </div>
+                                    <div class="d-flex gap-1 ms-3 flex-shrink-0">
+                                        {{ botoes(atividade) }}
+                                    </div>
+                                </div>
                             </div>
-                            <div class="d-flex gap-2">
-                                {% if compartilhada %}
-                                    <a href="{{ url_for('atividade_detalhe_compartilhada', owner_id=owner_id, id_viagem=viagem.doc_id, id_atividade=atividade['doc_id']) }}"
-                                       class="btn btn-outline-dark btn-sm">Editar</a>
-                                    {% if viagem.doc_id and atividade['doc_id'] %}
-                                        <form action="{{ url_for('excluir_atividade_compartilhada', owner_id=owner_id, id_viagem=viagem.doc_id, id_atividade=atividade['doc_id']) }}" method="POST" style="display:inline;">
-                                            <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Excluir esta atividade?');">
-                                                Excluir
-                                            </button>
-                                        </form>
-                                    {% else %}
-                                        <button class="btn btn-outline-danger btn-sm" disabled>Excluir (ID inválido)</button>
-                                    {% endif %}
-                                {% else %}
-                                    <a href="{{ url_for('atividade_detalhe', id_viagem=viagem.doc_id, id_atividade=atividade['doc_id']) }}"
-                                       class="btn btn-outline-dark btn-sm">Editar</a>
-                                    {% if viagem.doc_id and atividade['doc_id'] %}
-                                        <form action="{{ url_for('excluir_atividade', id_viagem=viagem.doc_id, id_atividade=atividade['doc_id']) }}" method="POST" style="display:inline;">
-                                            <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Excluir esta atividade?');">
-                                                Excluir
-                                            </button>
-                                        </form>
-                                    {% else %}
-                                        <button class="btn btn-outline-danger btn-sm" disabled>Excluir (ID inválido)</button>
-                                    {% endif %}
-                                {% endif %}
-                            </div>
-                        </li>
-                    {% endfor %}
-                </ul>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                {% if sem_data %}
+                    <div class="{% if com_data %}sem-data-section{% endif %}">
+                        {% if com_data %}
+                            <h6 class="text-muted text-uppercase small mb-3 letter-spacing-1">Sem data definida</h6>
+                        {% endif %}
+                        <div class="table-responsive">
+                            <table class="table table-sm table-borderless align-middle mb-0">
+                                <tbody>
+                                    {% for atividade in sem_data %}
+                                        <tr>
+                                            <td class="fw-bold">{{ atividade['nome_atividade'] }}</td>
+                                            {% for valor in (atividade.valores_colunas or []) %}
+                                                <td class="text-end text-nowrap">{{ valor or '—' }}</td>
+                                            {% else %}
+                                                <td class="text-end text-nowrap text-muted">R$ {{ "%.2f"|format(atividade['valor_atividade']|float) }}</td>
+                                            {% endfor %}
+                                            <td class="text-end text-nowrap">
+                                                <div class="d-flex gap-1 justify-content-end">
+                                                    {{ botoes(atividade) }}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                {% endif %}
+
             {% else %}
-                <p class="text-muted text-center my-4 italic">Nenhuma atividade cadastrada ainda. Comece adicionando uma!</p>
+                <p class="text-muted text-center my-4">Nenhuma atividade cadastrada ainda. Comece adicionando uma!</p>
             {% endif %}
 
-            <div class="bg-light p-3 rounded mb-4">
+            <div class="bg-light p-3 rounded mb-4 mt-4">
                 <table class="table table-sm table-borderless mb-0">
                     <tbody>
                         <tr>
                             <th class="text-start">Orçamento Total:</th>
-                            <td class="text-end fw-bold">R$ {{ "%.2f"|format(viagem.valor_total) }}</td>
+                            {% for col in (viagem.orcamento_colunas or []) %}
+                                <td class="text-end fw-bold text-nowrap">{{ col.total }}</td>
+                            {% else %}
+                                <td class="text-end fw-bold">R$ {{ "%.2f"|format(viagem.valor_total) }}</td>
+                            {% endfor %}
                         </tr>
                         <tr>
                             <th class="text-start">Valor Restante:</th>
-                            <td class="text-end fw-bold text-success">R$ {{ "%.2f"|format(viagem.valor_restante) }}</td>
+                            {% for col in (viagem.orcamento_colunas or []) %}
+                                <td class="text-end fw-bold text-success text-nowrap">{{ col.restante }}</td>
+                            {% else %}
+                                <td class="text-end fw-bold text-success">R$ {{ "%.2f"|format(viagem.valor_restante) }}</td>
+                            {% endfor %}
                         </tr>
                     </tbody>
                 </table>
             </div>
 
-            <div class="d-flex justify-content-center gap-3">
-                <a href="{{ url_for('perfil') }}" class="btn btn-secondary">Voltar</a>
-                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalAtividade">
-                    + Nova Atividade
+            <div class="d-flex justify-content-center gap-2">
+                <a href="{{ url_for('perfil') }}" class="btn btn-outline-secondary btn-sm px-3">
+                    Voltar
+                </a>
+                <button type="button" class="btn btn-dark btn-sm px-3" data-bs-toggle="modal" data-bs-target="#modalAtividade">
+                    <i class="bi bi-plus"></i> Adicionar Atividade
                 </button>
-
                 {% if not compartilhada %}
-                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalConvite">
-                        Convidar / Gerenciar
+                    <button type="button" class="btn btn-outline-dark btn-sm px-3" data-bs-toggle="modal" data-bs-target="#modalConvite">
+                        <i class="bi bi-people"></i> Gerenciar Viagem
                     </button>
                 {% endif %}
             </div>
@@ -139,10 +200,15 @@
                 {{ form_atividade.nome_atividade(class="form-control", placeholder="Ex: Jantar no Louvre") }}
             </div>
             <div class="mb-3">
-                {{ form_atividade.valor_atividade.label(class="form-label") }}
-                <div class="input-group">
-                    <span class="input-group-text">R$</span>
-                    {{ form_atividade.valor_atividade(class="form-control", placeholder="0.00") }}
+                <div class="row g-2">
+                    <div class="col-5">
+                        {{ form_atividade.moeda_inserida.label(class="form-label") }}
+                        {{ form_atividade.moeda_inserida(class="form-select") }}
+                    </div>
+                    <div class="col-7">
+                        {{ form_atividade.valor_atividade.label(class="form-label") }}
+                        {{ form_atividade.valor_atividade(class="form-control", placeholder="0.00") }}
+                    </div>
                 </div>
             </div>
             <div class="mb-3">

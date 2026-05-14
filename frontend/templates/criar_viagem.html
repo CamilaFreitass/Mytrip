@@ -58,6 +58,22 @@
 
                     <div class="row">
                         <div class="col-md-6 form-group">
+                            {{ form.moeda_destino.label(class="form-label") }}
+                            {{ form.moeda_destino(class="form-select" + (" is-invalid" if form.moeda_destino.errors else "")) }}
+                            {% for error in form.moeda_destino.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6 form-group">
+                            {{ form.moeda_comparacao.label(class="form-label") }}
+                            {{ form.moeda_comparacao(class="form-select") }}
+                        </div>
+                    </div>
+
+                    <br>
+
+                    <div class="row">
+                        <div class="col-md-6 form-group">
                             {{ form.data_inicio.label(class="form-label") }}
                             {{ form.data_inicio(class="form-control") }}
                         </div>

@@ -1,6 +1,7 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, BooleanField, FloatField, DateField
+from wtforms import StringField, PasswordField, SubmitField, BooleanField, FloatField, DateField, SelectField
 from wtforms.validators import DataRequired, Length, Email, EqualTo, NumberRange, Optional
+from constants import MOEDAS_DESTINO, MOEDAS_COMPARACAO, MOEDAS_ATIVIDADE
 
 
 
@@ -21,7 +22,9 @@ class FormLogin(FlaskForm):
 
 class FormCriarViagem(FlaskForm):
     destino = StringField('Destino', validators=[DataRequired()])
-    valor_total = FloatField('Valor Total', validators=[DataRequired(), NumberRange(min=0)])
+    valor_total = FloatField('Valor Total (R$)', validators=[DataRequired(), NumberRange(min=0)])
+    moeda_destino = SelectField('Moeda do Destino', choices=MOEDAS_DESTINO, validators=[Optional()])
+    moeda_comparacao = SelectField('Moeda de Comparação', choices=MOEDAS_COMPARACAO, default='USD')
     data_inicio = DateField('Data de Início', validators=[Optional()], format='%Y-%m-%d')
     data_fim = DateField('Data de Fim', validators=[Optional()], format='%Y-%m-%d')
     submit_viagem = SubmitField('Criar Viagem')
@@ -29,6 +32,7 @@ class FormCriarViagem(FlaskForm):
 
 class FormCriarAtividade(FlaskForm):
     nome_atividade = StringField('Nome da atividade', validators=[DataRequired()])
-    valor_atividade = FloatField('Valor (R$)', validators=[DataRequired()])
+    valor_atividade = FloatField('Valor', validators=[DataRequired()])
+    moeda_inserida = SelectField('Moeda', choices=MOEDAS_ATIVIDADE, default='BRL')
     data_atividade = DateField('Data', validators=[Optional()], format='%Y-%m-%d')
     submit_atividade = SubmitField('Salvar Atividade')

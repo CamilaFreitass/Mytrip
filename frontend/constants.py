@@ -1,0 +1,48 @@
+MOEDAS_DESTINO = [
+    ('', 'Selecione a moeda do destino'),
+    ('USD', 'USD — Dólar Americano'),
+    ('EUR', 'EUR — Euro'),
+    ('GBP', 'GBP — Libra Esterlina'),
+    ('ARS', 'ARS — Peso Argentino'),
+    ('CLP', 'CLP — Peso Chileno'),
+    ('COP', 'COP — Peso Colombiano'),
+    ('MXN', 'MXN — Peso Mexicano'),
+    ('JPY', 'JPY — Iene Japonês'),
+    ('CAD', 'CAD — Dólar Canadense'),
+    ('AUD', 'AUD — Dólar Australiano'),
+    ('CHF', 'CHF — Franco Suíço'),
+    ('CNY', 'CNY — Yuan Chinês'),
+    ('PEN', 'PEN — Sol Peruano'),
+    ('UYU', 'UYU — Peso Uruguaio'),
+    ('BOB', 'BOB — Boliviano'),
+    ('PYG', 'PYG — Guarani Paraguaio'),
+]
+
+MOEDAS_COMPARACAO = [
+    ('USD', 'USD — Dólar Americano'),
+    ('EUR', 'EUR — Euro'),
+    ('GBP', 'GBP — Libra Esterlina'),
+    ('BRL', 'BRL — Real Brasileiro'),
+    ('JPY', 'JPY — Iene Japonês'),
+    ('CHF', 'CHF — Franco Suíço'),
+]
+
+MOEDAS_ATIVIDADE = [
+    ('BRL', 'BRL — Real Brasileiro'),
+    ('USD', 'USD — Dólar Americano'),
+    ('EUR', 'EUR — Euro'),
+    ('GBP', 'GBP — Libra Esterlina'),
+    ('ARS', 'ARS — Peso Argentino'),
+    ('CLP', 'CLP — Peso Chileno'),
+    ('COP', 'COP — Peso Colombiano'),
+    ('MXN', 'MXN — Peso Mexicano'),
+    ('JPY', 'JPY — Iene Japonês'),
+    ('CAD', 'CAD — Dólar Canadense'),
+    ('AUD', 'AUD — Dólar Australiano'),
+    ('CHF', 'CHF — Franco Suíço'),
+    ('CNY', 'CNY — Yuan Chinês'),
+    ('PEN', 'PEN — Sol Peruano'),
+    ('UYU', 'UYU — Peso Uruguaio'),
+    ('BOB', 'BOB — Boliviano'),
+    ('PYG', 'PYG — Guarani Paraguaio'),
+]
